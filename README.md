@@ -29,11 +29,11 @@ The automation creates clean and detailed sales-ready research document of you l
 - Check website health (robots, status, HTML fetch).
 - If **scrapable**: enrich with Apollo (revenue, headcount, industry, founded, keywords).
 - Scrape homepage via Bright Data; then AI agent auto-categorize links (About / Products & Services / Financials).
-- AI picks the **best** link per category and scrape & summarize each.
+- AI picks the **best** link per category; BrightData scrape & AI summarize each.
 - If **not scrapable**: try the email domain. If still blocked: create a Disqualified doc + Slack note with reason and stop.
 
 3. **Part 2 (Automation 2) — News, Financials, LinkedIn** *(only for qualified leads)*
-- Find **recent news** & **financial sources** via Bright Data Google search. AI agent selects the most relevant → scrape & summarize.
+- Find **recent news** & **financial sources** via Bright Data Google search. AI agent selects the most relevant and BrightData scrape, followed by AI summarization.
 - Find **person’s LinkedIn**; if found, run Bright Data batch extraction and summarizes the exec bio.
 
 **Back to Main Automation (Part 3)** - Finally the AI agent composes a polished **Google Doc** and a **Slack update** content and automation updates the document in Google Drive link and updates the Slack message (Qualified/Disqualified + flags + doc link).
@@ -85,7 +85,7 @@ The automation creates clean and detailed sales-ready research document of you l
 
 ## Performance Metrics
 
-- **Processing Time**: Under 12 minutes per lead
+- **Processing Time**: Under 20 minutes per lead
 - **Data Quality**: Comprehensive research equivalent to 2+ hours of manual work
 
 ## Error Handling
