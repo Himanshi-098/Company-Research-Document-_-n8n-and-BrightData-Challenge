@@ -42,7 +42,7 @@ The automation creates clean and detailed sales-ready research document of you l
 
 ## Tools & Integrations
 
-- **N8n**: Workflow automation platform
+- **n8n**: Workflow automation platform
 - **Apollo.io**: Company data enrichment
 - **BrightData**: Web scraping and data extraction
 - **Google Sheets**: Form data and email content storage
