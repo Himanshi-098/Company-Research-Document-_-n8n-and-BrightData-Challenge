@@ -1,0 +1,3120 @@
+{
+  "name": "N8N Part 1 Competition",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Extract all links from HTML stored in $input.first().json.data using regex\n\nconst html = $('Google search via Brightdata Official node').first().json;\n\n// Regex to capture href values from anchor tags\nconst linkRegex = /<a[^>]+href=[\"']([^\"']+)[\"']/gi;\n\nlet match;\nconst links = new Set();\n\nwhile ((match = linkRegex.exec(html)) !== null) {\n  links.add(match[1]);\n}\n\nreturn {\n  links: Array.from(links),\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6320,
+        2220
+      ],
+      "id": "593a87f4-3bf5-4803-8c58-48a3fe46f5c4",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Code5').first().json.my_field_1;\nconst links = $input.item.json.links || []; // adjust path as needed\n\nconst fullLinks = links\n  .filter(link => link && !link.startsWith('#')) // Skip anchors and null/undefined\n  .map(link =>\n    link.startsWith('http') ? link\n      : link === '/' ? base\n      : `${base}${link}`\n  );\n\n// Return a single item with all URLs in an array\nreturn [{ json: { urls: fullLinks } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6100,
+        2220
+      ],
+      "id": "8960dbd6-bd8a-44f5-a555-2aaa183fde20",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const links = $input.first().json.urls || [];\nconst baseUrl = $('Code5').first().json.my_field_1; // or pull dynamically if needed\nconst baseDomain = baseUrl.replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('/')[0];\n\nconst aboutKeywords = [\n  'about', 'team', 'company', 'leadership', 'founders', 'management',\n  'mission', 'vision', 'values', 'purpose', 'history', 'governance',\n  'people', 'who-we-are', 'whoweare', 'our-story', 'our-journey',\n  'referrals', 'impact', 'clients', 'careers', 'contact', 'investor'\n];\n\nconst productServiceKeywords = [\n  'services', 'service', 'solutions', 'offerings', 'what-we-do',\n  'capabilities', 'technology', 'consulting', 'expertise',\n  'features', 'platform-features', 'products', 'shop', 'catalog',\n  'collections', 'categories', 'brands', 'plans', 'pricing',\n  'packages', 'buy', 'order', 'checkout'\n];\n\nconst financialInfoKeywords = [\n  'investor', 'investors', 'investor-relations', 'investor_relations', 'ir',\n  'financials', 'financial', 'finances', 'funding', 'funds', 'raised', 'valuation',\n  'earnings', 'revenue', 'income', 'profits', 'loss', 'growth', 'q1', 'q2', 'q3', 'q4',\n  'quarterly', 'annual-report', 'annual_reports', 'reports', 'financial-report', '10k', '10-q',\n  'sec-filings', 'filings', 'stock', 'shareholder', 'shareholders', 'dividends',\n  'equity', 'capital', 'balance-sheet', 'cashflow', 'ipo', 'acquisition', 'merger',\n  'investments', 'presentation', 'metrics', 'performance'\n];\n\nfunction extractHostname(url) {\n  try {\n    return url.replace(/^https?:\\/\\//, '').replace(/^www\\./, '').split('/')[0];\n  } catch {\n    return '';\n  }\n}\n\nfunction extractPathSegments(url) {\n  try {\n    const path = url.split('?')[0]; // Remove query\n    const clean = path.replace(/^https?:\\/\\/[^/]+/, ''); // Remove domain\n    const parts = clean.split('/').filter(Boolean);\n    return parts.map(p => p.toLowerCase());\n  } catch {\n    return [];\n  }\n}\n\nfunction matchesAnyKeyword(segments, keywords) {\n  return segments.some(segment =>\n    keywords.some(keyword => segment.includes(keyword))\n  );\n}\n\nconst aboutLinks = [];\nconst productServiceLinks = [];\nconst financialInfoLinks = [];\n\nfor (const link of links) {\n  const domain = extractHostname(link);\n  if (domain !== baseDomain) continue; // ⛔ Skip external domains\n\n  const pathSegments = extractPathSegments(link);\n\n  if (matchesAnyKeyword(pathSegments, aboutKeywords)) {\n    aboutLinks.push(link);\n  } else if (matchesAnyKeyword(pathSegments, productServiceKeywords)) {\n    productServiceLinks.push(link);\n  } else if (matchesAnyKeyword(pathSegments, financialInfoKeywords)) {\n    financialInfoLinks.push(link);\n  }\n}\n\nreturn [{\n  json: {\n    about_us: aboutLinks,\n    product_service: productServiceLinks,\n    financial_info: financialInfoLinks\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5880,
+        2220
+      ],
+      "id": "e630201c-4769-4c2c-a001-f081153b3912",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  return {\n    json: {\n      my_field_1: `https://${$('When Executed by Another Workflow').first().json['Company URL']}`\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4200,
+        1260
+      ],
+      "id": "4f05d42b-fe68-404b-b509-397100445d79",
+      "name": "Code5"
+    },
+    {
+      "parameters": {
+        "url": "https://api.apollo.io/api/v1/organizations/enrich",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "domain",
+              "value": "={{ $json.domain }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "<Apollo API key Here>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4820,
+        1260
+      ],
+      "id": "75e76a8a-ae0b-4a6e-8552-88e3f7fb1796",
+      "name": "Apollo Organization Details2",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const url = $json.website_url_final;\n\nfunction extractDomain(url) {\n  if (!url) return null;\n  \n  url = url.trim();\n\n  // Remove protocol (http/https)\n  url = url.replace(/^https?:\\/\\//, \"\");\n\n  // Remove www.\n  url = url.replace(/^www\\./, \"\");\n\n  // Get everything before first slash\n  const host = url.split(\"/\")[0];\n\n  // Split into parts\n  const parts = host.split(\".\");\n\n  // If domain has only two parts (example.com), return as-is\n  if (parts.length <= 2) {\n    return host;\n  }\n\n  // Otherwise, take the LAST TWO parts (handles .com, .net, .xyz, .in, etc.)\n  return parts.slice(-2).join(\".\");\n}\n\nreturn {\n  domain: extractDomain(url)\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5040,
+        1260
+      ],
+      "id": "b63083a5-9039-4162-a739-0ad1f26c1b98",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"funding_date\": \"{{ $json.latest_funding_round_date.split('T')[0] }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4400,
+        1260
+      ],
+      "id": "863e181d-ab20-40e7-b7bc-5e00fa1bdf1b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"company_name\": \"{{ $('Apollo Organization Details2').item.json.organization.name || 'Not Found' }}\",\n  \"founded_year\": \"{{ $('Apollo Organization Details2').item.json.organization.founded_year || 'Not Found' }}\",\n  \"primary_industry\": \"{{ $('Apollo Organization Details2').item.json.organization.industry || 'Not Found' }}\",\n  \"secondary_industry\": \"{{ $('Apollo Organization Details2').item.json.organization.industries && $('Apollo Organization Details2').item.json.organization.industries[1] ? $('Apollo Organization Details2').item.json.organization.industries[1] : 'Not Found' }}\",\n  \"employee_count\": \"{{ $('Apollo Organization Details2').item.json.organization.estimated_num_employees || 'Not Found' }}\",\n  \"annual_revenue\": \"{{ $('Apollo Organization Details2').item.json.organization.annual_revenue_printed || 'Not Found' }}\",\n  \"total_funding\": \"{{ $('Apollo Organization Details2').item.json.organization.total_funding_printed || 'Not Found' }}\",\n  \"latest_funding_round_date\": \"{{ $('Apollo Organization Details2').item.json.organization.latest_funding_round_date || 'Not Found' }}\",\n  \"linkedin_url\": \"{{ $('Apollo Organization Details2').item.json.organization.linkedin_url || 'Not Found' }}\",\n  \"twitter_url\": \"{{ $('Apollo Organization Details2').item.json.organization.twitter_url || 'Not Found' }}\",\n  \"facebook_url\": \"{{ $('Apollo Organization Details2').item.json.organization.facebook_url || 'Not Found' }}\",\n  \"keywords\": \"{{ $('Apollo Organization Details2').item.json.organization.keywords ? $('Apollo Organization Details2').item.json.organization.keywords.filter(k => k).slice(0,6).join(', ') : 'Not Found' }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4600,
+        1260
+      ],
+      "id": "bc23ba63-a63b-4167-8b27-32832a55da30",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = \"Couldn't Found\";\n\ntry {\n  text = $input.first().json.output || \"Couldn't Found\";\n} catch (e) {\n  text = \"Couldn't Found\";\n}\n\nreturn [{ text }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2500,
+        2260
+      ],
+      "id": "4e53301e-3059-4d5c-8395-5a09d2af7504",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = \"Couldn't Found\";\n\ntry {\n  text = $input.first().json.output || \"Couldn't Found\";\n} catch (e) {\n  text = \"Couldn't Found\";\n}\n\nreturn [{ text }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3960,
+        2240
+      ],
+      "id": "c515cbfe-bb64-4b1d-b921-3db19fd03fb0",
+      "name": "Code6"
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = \"Couldn't Found\";\n\ntry {\n  text = $input.first().json.output || \"Couldn't Found\";\n} catch (e) {\n  text = \"Couldn't Found\";\n}\n\nreturn [{ text }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1220,
+        2200
+      ],
+      "id": "9f60124b-e03a-4bfa-95cd-c15264bf3e03",
+      "name": "Code7"
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = \"Couldn't Found\";\n\ntry {\n  text = $('AI Agent4').first().json.output || \"Couldn't Found\";\n} catch (e) {\n  text = \"Couldn't Found\";\n}\n\nreturn [{ text }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6540,
+        2220
+      ],
+      "id": "40386f21-53f4-4c01-b38e-c4a25ac1a27f",
+      "name": "Code8"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.About_Us }}",
+                    "rightValue": "Not Found",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "id": "38896ac1-75bc-482c-8d7f-0ba8dbac7af9"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "60089238-04dc-4d89-9377-dd0ab6baf884",
+                    "leftValue": "={{ $json.output.About_Us }}",
+                    "rightValue": "Not Found",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -4960,
+        2220
+      ],
+      "id": "ff8f231f-6fad-40a4-bdac-6713097152dc",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('AI Agent3').item.json.output.Product_Service }}",
+                    "rightValue": "Not Found",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "id": "38896ac1-75bc-482c-8d7f-0ba8dbac7af9"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "60089238-04dc-4d89-9377-dd0ab6baf884",
+                    "leftValue": "={{ $('AI Agent3').item.json.output.Product_Service }}",
+                    "rightValue": "Not Found",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -3520,
+        2240
+      ],
+      "id": "9014db27-0829-4b0d-8170-09f6284c0280",
+      "name": "Switch3"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('AI Agent3').item.json.output.Financial_URL }}",
+                    "rightValue": "Not Found",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "id": "38896ac1-75bc-482c-8d7f-0ba8dbac7af9"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "60089238-04dc-4d89-9377-dd0ab6baf884",
+                    "leftValue": "={{ $('AI Agent3').item.json.output.Financial_URL }}",
+                    "rightValue": "Not Found",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -2280,
+        2260
+      ],
+      "id": "2ff12cef-5d68-447f-9e81-ca6e8813c3f6",
+      "name": "Switch4"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -5440,
+        2440
+      ],
+      "id": "c0e35857-fc5a-49c4-abe7-30f2a6db5e0b",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BoMnZRoYo08UsEhi",
+          "name": "DIDI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\"About_Us\":\"URL from the about us\",\n\"Product_Service\":\"URL from the Product/ service\",\n\"Financial_URL\": \"URL from the Financial Info\"\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -5260,
+        2360
+      ],
+      "id": "06ebbb70-bbe2-4c10-9ec7-ab2bf3681d95",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -4240,
+        2360
+      ],
+      "id": "fd218f48-bc5d-4979-99eb-66592b91eb0e",
+      "name": "Google Gemini Chat Model4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BoMnZRoYo08UsEhi",
+          "name": "DIDI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2780,
+        2360
+      ],
+      "id": "07d04789-4d96-458b-8072-1906ea3e6654",
+      "name": "Google Gemini Chat Model6",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BoMnZRoYo08UsEhi",
+          "name": "DIDI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1540,
+        2360
+      ],
+      "id": "cadd0de4-c9a6-4777-84fd-43c2b94fa02c",
+      "name": "Google Gemini Chat Model11",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BoMnZRoYo08UsEhi",
+          "name": "DIDI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -7040,
+        2440
+      ],
+      "id": "aea4dde3-ac36-44ab-aa04-c548f5388b44",
+      "name": "Google Gemini Chat Model9",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BoMnZRoYo08UsEhi",
+          "name": "DIDI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code (Node v2) - JavaScript\n// Source ONLY from root field: $input.first().json[\"Company URL\"]\n\nconst item = $input.first()?.json ?? {};\nconst raw = (item[\"Company URL\"] ?? '').toString();\n\n// Clean weird chars\nlet s = raw\n  .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')  // zero-width\n  .replace(/\\u00A0/g, ' ')                // nbsp\n  .replace(/^['\"`]+|['\"`]+$/g, '')        // stray quotes\n  .trim()\n  .toLowerCase();\n\nif (!s) {\n  return [{\n    json: { ok: false, error: \"Missing URL in root field 'Company URL'\", originalInput: raw }\n  }];\n}\n\n// Prepend https if missing\nif (!/^https?:\\/\\//i.test(s)) s = 'https://' + s;\n\n// Extract scheme + host via regex (no `new URL`)\nconst m = s.match(/^(https?):\\/\\/([^\\/?#\\s]+)(?:[\\/?#]|$)/i);\nif (!m) {\n  return [{ json: { ok: false, error: \"Could not extract host\", normalized: s } }];\n}\nconst scheme = m[1].toLowerCase();\nconst host = m[2].toLowerCase();\n\n// Validate host (basic RFC-style labels)\nconst validHost = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+(?:[a-z0-9-]{2,63}|xn--[a-z0-9-]{1,59})$/i.test(host);\nif (!validHost) {\n  return [{ json: { ok: false, error: \"Invalid hostname format\", host, normalized: s } }];\n}\n\nconst canonicalHost = host.replace(/^www\\./, '');\nconst origin = `${scheme}://${host}`;\n\nreturn [{\n  json: {\n    ok: true,\n    originalInput: raw,\n    sanitizedInput: s,\n    scheme,\n    host,\n    canonicalHost,\n    baseUrl: origin,        // e.g. https://www.empowermind.mx\n    homepage: origin + '/', // e.g. https://www.empowermind.mx/\n    robotsUrl: origin + '/robots.txt'\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -7140,
+        1280
+      ],
+      "id": "7106c4d8-d108-4f52-9a5a-91cf513d291d",
+      "name": "Code15"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Code15').item.json.robotsUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            },
+            {
+              "name": "Accept",
+              "value": "text/plain,*/*"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6480,
+        1280
+      ],
+      "id": "75f6992d-7385-41ea-8e2b-a49bc1d13eff",
+      "name": "HTTP Request7",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "Yes",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "de5e5c63-f4ad-424b-b925-79b43bc84e8f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "de95486b-5876-47f3-8056-cddf6def0cd7",
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -6040,
+        1280
+      ],
+      "id": "9180d86c-a1d4-4786-ba5a-39952e162a0e",
+      "name": "Switch5"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Code15').item.json.homepage }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 4
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6700,
+        1280
+      ],
+      "id": "7cd4da99-6c5f-4025-98b4-c1971f79ef73",
+      "name": "HTTP Request5",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "339e576a-a1fd-4817-b1d6-6cedf63fedf9",
+              "name": "Comapny Name",
+              "value": "={{ ($json.output || '')  .match(/\"company_name\"\\s*:\\s*\"([^\"]+)\"/)?.[1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -6760,
+        2220
+      ],
+      "id": "bb97aebf-8563-4394-9e1f-5eaa136aa9dc",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <Slack API Key Here>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "channel",
+              "value": "<Slack Channel ID here>"
+            },
+            {
+              "name": "blocks",
+              "value": "=[\n    {\n      \"type\": \"section\",\n      \"text\": { \"type\": \"mrkdwn\", \"text\": \"{{ $json.text }}\n\n*Full Report*: <https://docs.google.com/document/d/{{ $('CreateGoogleDoc2').item.json.id }}|Click Here>\" }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"action_id\": \"disqualify\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Disqualify\" },\n          \"style\": \"danger\",\n          \"value\": \"{{ $('When Executed by Another Workflow').item.json.body['Hubspot Deal ID'] }}\"\n        }\n      ]\n    }\n  ]\n"
+            },
+            {
+              "name": "thread_ts",
+              "value": "={{ $('When Executed by Another Workflow').item.json.body['Slack Ts'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5460,
+        4080
+      ],
+      "id": "2fd082ad-a44b-4f1f-906c-cbf3edc55322",
+      "name": "HTTP Request6"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://dns.google/resolve?name=' + $('Code15').item.json.canonicalHost + '&type=A' }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6920,
+        1280
+      ],
+      "id": "1a186f33-fae8-4404-838b-36d6fd44bc0a",
+      "name": "HTTP Request10"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ----- CONFIG: node names in THIS chain -----\nconst NORMALIZER = \"Code15\";          // URL normalizer\nconst DNS_A      = \"HTTP Request10\";  // Google DNS A lookup\nconst ROBOTS     = \"HTTP Request7\";   // robots.txt request\nconst GET_HTML   = \"HTTP Request5\";   // homepage GET\n// -------------------------------------------\n\nfunction safe(name){ try { return $node[name].json; } catch { return undefined; } }\n\nconst norm   = safe(NORMALIZER) || {};\nconst dnsa   = safe(DNS_A)      || {};\nconst robots = safe(ROBOTS)     || {};\nconst getRes = safe(GET_HTML)   || {};\n\nconst baseUrl = norm.baseUrl || $json.baseUrl || null;\nconst host    = norm.canonicalHost || norm.host || null;\n\n// --- DNS check (supports both fullResponse:true and direct JSON) ---\nlet dnsaJson = {};\nif (dnsa && typeof dnsa === 'object') {\n  if (dnsa.Status !== undefined) {\n    dnsaJson = dnsa;\n  } else if (dnsa.body !== undefined) {\n    try { dnsaJson = typeof dnsa.body === 'string' ? JSON.parse(dnsa.body) : dnsa.body; } catch {}\n  }\n}\nconst dnsOk = Number(dnsaJson.Status) === 0 && Array.isArray(dnsaJson.Answer) && dnsaJson.Answer.length > 0;\n\n// --- robots.txt parse (collect disallows for UA: *) ---\nconst robotsText = (robots.body ?? robots.data ?? \"\").toString();\nfunction parseRobots(txt){\n  const out = { allowsRoot: true, disallows: [] };\n  if (!txt) return out;\n  let star = false;\n  for (const raw of txt.split(/\\r?\\n/)) {\n    const line = raw.trim();\n    if (!line || line.startsWith(\"#\")) continue;\n    const i = line.indexOf(\":\"); if (i === -1) continue;\n    const k = line.slice(0,i).trim().toLowerCase();\n    const v = line.slice(i+1).trim();\n    if (k === \"user-agent\") star = (v.toLowerCase() === \"*\");\n    else if (k === \"disallow\" && star) {\n      out.disallows.push(v);\n      if (v === \"/\") out.allowsRoot = false;\n    }\n  }\n  return out;\n}\nconst robotsInfo = parseRobots(robotsText);\n\n// --- GET homepage (fullResponse:true, text) ---\nconst statusGet = Number(getRes.statusCode || 0);\nconst headers   = Object.fromEntries(Object.entries(getRes.headers || {}).map(([k,v]) => [String(k).toLowerCase(), v]));\nconst ct        = (headers[\"content-type\"] || \"\").toLowerCase();\nconst htmlLike  = ct ? ct.includes(\"text/html\") : true;\nconst setCookie = Array.isArray(headers[\"set-cookie\"]) ? headers[\"set-cookie\"].join(\"; \") : (headers[\"set-cookie\"] || \"\");\nconst server    = (headers[\"server\"] || \"\").toLowerCase();\n\nconst antiSignals = [];\nif (server.includes(\"cloudflare\") || \"cf-ray\" in headers || /__cf_bm/i.test(setCookie)) antiSignals.push(\"cloudflare\");\nif (/akamai/i.test(server) || /ak_bmsc|bm_sz|abck/i.test(setCookie)) antiSignals.push(\"akamai\");\nif (/perimeterx|_px/i.test(setCookie) || \"x-perimeterx\" in headers) antiSignals.push(\"perimeterx\");\nif (/datadome/i.test(setCookie) || \"x-datadome\" in headers) antiSignals.push(\"datadome\");\nconst blockedNow = [403,429,503].includes(statusGet) || !!headers[\"retry-after\"];\n\n// “parked / for sale” heuristic\nconst body = (getRes.body ?? getRes.data ?? \"\").toString();\nconst parked = /domain\\s+for\\s+sale|buy\\s+this\\s+domain|parkingcrew|sedoparking|namebright|godaddy\\s+parked|coming\\s+soon|default\\s+web\\s+page|welcome\\s+to\\s+nginx|apache\\s+2\\.4\\s+test|iis\\s+windows\\s+server/i.test(body);\n\n// --- capture node errors (when Continue On Fail + Never Error are ON) ---\nconst getErr    = (getRes && getRes.error)    ? getRes.error    : {};\nconst robotsErr = (robots && robots.error)    ? robots.error    : {};\n\n// --- verdict mapping (simplified) ---\nlet rawVerdict;\nif (!baseUrl || !host)                 rawVerdict = \"URL OK? Unknown (no baseUrl/host)\";\nelse if (!dnsOk)                       rawVerdict = \"NO: invalid domain (DNS)\";\nelse if (parked)                       rawVerdict = \"NO: parked/for-sale page\";\nelse if (blockedNow)                   rawVerdict = \"NO: actively blocked by anti-bot\";\nelse if (!(statusGet >= 200 && statusGet < 400)) rawVerdict = \"NO: site not reachable (GET)\";\nelse if (!htmlLike)                    rawVerdict = \"NO: not serving HTML\";\nelse if (!robotsInfo.allowsRoot)       rawVerdict = \"NO: robots disallows '/'\";\nelse                                    rawVerdict = antiSignals.length\n                                                ? \"LIKELY YES: scrape OK, anti-bot present (handle politely)\"\n                                                : \"YES: scrape OK\";\n\n// Simplified verdict\nlet verdict = [\"YES: scrape OK\", \"LIKELY YES: scrape OK, anti-bot present (handle politely)\"].includes(rawVerdict)\n  ? \"Yes\"\n  : \"No\";\n\n// can_scrape_http aligned with new verdict logic\nconst can_scrape_http = verdict === \"Yes\";\n\nreturn [{\n  json: {\n    verdict,                        // \"Yes\" or \"No\"\n    raw_verdict: rawVerdict,       // full descriptive version\n    can_scrape_http,\n    anti_bot_present: antiSignals.length > 0,\n    url_seen: baseUrl,\n    host_checked: host,\n    status_code: statusGet || null,\n    content_type: ct || null,\n    robots_allows_root: robotsInfo.allowsRoot,\n    robots_disallows: robotsInfo.disallows,\n    anti_bot_signals: antiSignals,\n    retry_after: headers[\"retry-after\"] || null,\n    parked,\n    dns_ok: dnsOk,\n    dns_status: dnsaJson.Status ?? null,\n    dns_answers_count: Array.isArray(dnsaJson.Answer) ? dnsaJson.Answer.length : 0,\n    http_error_code: getErr.code || null,\n    http_error_message: getErr.message || null,\n    robots_error_code: robotsErr.code || null,\n    robots_error_message: robotsErr.message || null\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6260,
+        1280
+      ],
+      "id": "a7feb264-bd1a-4a35-b25a-f8a546e6a641",
+      "name": "Code16"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Code (Node v2) - JavaScript\n\n// Accept from Webhook body[\"Company URL\"] OR upstream fields (new_url, url, URL, domain)\nconst item = $input.first()?.json ?? {};\nconst raw = (\n  item.website_url ??                        // <— from Set node\n  item?.body?.['Company URL'] ??             // original webhook\n  item?.new_url ??                           // from Code24 directly (just in case)\n  item?.url ?? item?.URL ?? item?.domain ??  // other fallbacks\n  ''\n).toString();\n\n\n// Clean weird chars\nlet s = raw\n  .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')  // zero-width\n  .replace(/\\u00A0/g, ' ')                // nbsp\n  .replace(/^['\"`]+|['\"`]+$/g, '')        // stray quotes\n  .trim()\n  .toLowerCase();\n\nif (!s) {\n  return [{ json: { ok: false, error: \"Missing URL (body['Company URL'] / new_url / url / URL / domain)\", originalInput: raw } }];\n}\n\n// Prepend https if missing\nif (!/^https?:\\/\\//i.test(s)) s = 'https://' + s;\n\n// Extract scheme + host via regex (no `new URL`)\nconst m = s.match(/^(https?):\\/\\/([^\\/?#\\s]+)(?:[\\/?#]|$)/i);\nif (!m) return [{ json: { ok: false, error: \"Could not extract host\", normalized: s } }];\n\nconst scheme = m[1].toLowerCase();\nconst host = m[2].toLowerCase();\n\n// Validate host (basic RFC-style labels)\nconst validHost = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+(?:[a-z0-9-]{2,63}|xn--[a-z0-9-]{1,59})$/i.test(host);\nif (!validHost) return [{ json: { ok: false, error: \"Invalid hostname format\", host, normalized: s } }];\n\nconst canonicalHost = host.replace(/^www\\./, '');\nconst origin = `${scheme}://${host}`;\n\nreturn [{\n  json: {\n    ok: true,\n    originalInput: raw,\n    sanitizedInput: s,\n    scheme,\n    host,\n    canonicalHost,\n    baseUrl: origin,\n    homepage: origin + '/',\n    robotsUrl: origin + '/robots.txt'\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6500,
+        3240
+      ],
+      "id": "e1cbc384-398e-4ae6-8247-9c078f5f3021",
+      "name": "Code22"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Code22').item.json.robotsUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            },
+            {
+              "name": "Accept",
+              "value": "text/plain,*/*"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5840,
+        3240
+      ],
+      "id": "3612bd99-8832-4853-9053-fcff00639374",
+      "name": "HTTP Request12",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Code22').item.json.homepage }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            },
+            {
+              "name": "Accept",
+              "value": "*/*"
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": "identity"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 4
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6060,
+        3240
+      ],
+      "id": "5b959c41-d941-48f7-8817-5a1b71ac8313",
+      "name": "HTTP Request13",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://dns.google/resolve?name=' + $('Code22').item.json.canonicalHost + '&type=A' }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6280,
+        3240
+      ],
+      "id": "38cac123-bae6-45f9-8754-a8606147a3f9",
+      "name": "HTTP Request14"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ----- CONFIG: node names in THIS chain -----\nconst NORMALIZER = \"Code22\";          // URL normalizer\nconst DNS_A      = \"HTTP Request14\";  // Google DNS A lookup\nconst ROBOTS     = \"HTTP Request12\";  // robots.txt request\nconst GET_HTML   = \"HTTP Request13\";  // homepage GET\n// -------------------------------------------\n\nfunction safe(name){ try { return $node[name].json; } catch { return undefined; } }\n\nconst norm   = safe(NORMALIZER) || {};\nconst dnsa   = safe(DNS_A)      || {};\nconst robots = safe(ROBOTS)     || {};\nconst getRes = safe(GET_HTML)   || {};\n\nconst baseUrl = norm.baseUrl || $json.baseUrl || null;\nconst host    = norm.canonicalHost || norm.host || null;\n\n// --- DNS check (supports both fullResponse:true and direct JSON) ---\nlet dnsaJson = {};\nif (dnsa && typeof dnsa === 'object') {\n  if (dnsa.Status !== undefined) {\n    dnsaJson = dnsa;\n  } else if (dnsa.body !== undefined) {\n    try { dnsaJson = typeof dnsa.body === 'string' ? JSON.parse(dnsa.body) : dnsa.body; } catch {}\n  }\n}\nconst dnsOk = Number(dnsaJson.Status) === 0 && Array.isArray(dnsaJson.Answer) && dnsaJson.Answer.length > 0;\n\n// --- robots.txt parse (collect disallows for UA: *) ---\nconst robotsText = (robots.body ?? robots.data ?? \"\").toString();\nfunction parseRobots(txt){\n  const out = { allowsRoot: true, disallows: [] };\n  if (!txt) return out;\n  let star = false;\n  for (const raw of txt.split(/\\r?\\n/)) {\n    const line = raw.trim();\n    if (!line || line.startsWith(\"#\")) continue;\n    const i = line.indexOf(\":\"); if (i === -1) continue;\n    const k = line.slice(0,i).trim().toLowerCase();\n    const v = line.slice(i+1).trim();\n    if (k === \"user-agent\") star = (v.toLowerCase() === \"*\");\n    else if (k === \"disallow\" && star) {\n      out.disallows.push(v);\n      if (v === \"/\") out.allowsRoot = false;\n    }\n  }\n  return out;\n}\nconst robotsInfo = parseRobots(robotsText);\n\n// --- GET homepage (fullResponse:true, text) ---\nconst statusGet = Number(getRes.statusCode || 0);\nconst headers   = Object.fromEntries(Object.entries(getRes.headers || {}).map(([k,v]) => [String(k).toLowerCase(), v]));\nconst ct        = (headers[\"content-type\"] || \"\").toLowerCase();\nconst htmlLike  = ct ? ct.includes(\"text/html\") : true;\nconst setCookie = Array.isArray(headers[\"set-cookie\"]) ? headers[\"set-cookie\"].join(\"; \") : (headers[\"set-cookie\"] || \"\");\nconst server    = (headers[\"server\"] || \"\").toLowerCase();\n\nconst antiSignals = [];\nif (server.includes(\"cloudflare\") || \"cf-ray\" in headers || /__cf_bm/i.test(setCookie)) antiSignals.push(\"cloudflare\");\nif (/akamai/i.test(server) || /ak_bmsc|bm_sz|abck/i.test(setCookie)) antiSignals.push(\"akamai\");\nif (/perimeterx|_px/i.test(setCookie) || \"x-perimeterx\" in headers) antiSignals.push(\"perimeterx\");\nif (/datadome/i.test(setCookie) || \"x-datadome\" in headers) antiSignals.push(\"datadome\");\nconst blockedNow = [403,429,503].includes(statusGet) || !!headers[\"retry-after\"];\n\n// “parked / for sale” heuristic\nconst body = (getRes.body ?? getRes.data ?? \"\").toString();\nconst parked = /domain\\s+for\\s+sale|buy\\s+this\\s+domain|parkingcrew|sedoparking|namebright|godaddy\\s+parked|coming\\s+soon|default\\s+web\\s+page|welcome\\s+to\\s+nginx|apache\\s+2\\.4\\s+test|iis\\s+windows\\s+server/i.test(body);\n\n// --- capture node errors (when Continue On Fail + Never Error are ON) ---\nconst getErr    = (getRes && getRes.error)    ? getRes.error    : {};\nconst robotsErr = (robots && robots.error)    ? robots.error    : {};\n\n// --- full verdict (for debugging or logging purposes) ---\nlet rawVerdict;\nif (!baseUrl || !host)                 rawVerdict = \"URL OK? Unknown (no baseUrl/host)\";\nelse if (!dnsOk)                       rawVerdict = \"NO: invalid domain (DNS)\";\nelse if (parked)                       rawVerdict = \"NO: parked/for-sale page\";\nelse if (blockedNow)                   rawVerdict = \"NO: actively blocked by anti-bot\";\nelse if (!(statusGet >= 200 && statusGet < 400)) rawVerdict = \"NO: site not reachable (GET)\";\nelse if (!htmlLike)                    rawVerdict = \"NO: not serving HTML\";\nelse if (!robotsInfo.allowsRoot)       rawVerdict = \"NO: robots disallows '/'\";\nelse                                    rawVerdict = antiSignals.length\n                                                ? \"LIKELY YES: scrape OK, anti-bot present (handle politely)\"\n                                                : \"YES: scrape OK\";\n\n// --- simplified verdict ---\nlet verdict = [\"YES: scrape OK\", \"LIKELY YES: scrape OK, anti-bot present (handle politely)\"].includes(rawVerdict)\n  ? \"Yes\"\n  : \"No\";\n\n// can_scrape_http aligned with new verdict logic\nconst can_scrape_http = verdict === \"Yes\";\n\nreturn [{\n  json: {\n    verdict,                        // \"Yes\" or \"No\"\n    raw_verdict: rawVerdict,       // keep original for debugging if needed\n    can_scrape_http,\n    anti_bot_present: antiSignals.length > 0,\n    url_seen: baseUrl,\n    host_checked: host,\n    status_code: statusGet || null,\n    content_type: ct || null,\n    robots_allows_root: robotsInfo.allowsRoot,\n    robots_disallows: robotsInfo.disallows,\n    anti_bot_signals: antiSignals,\n    retry_after: headers[\"retry-after\"] || null,\n    parked,\n    dns_ok: dnsOk,\n    dns_status: dnsaJson.Status ?? null,\n    dns_answers_count: Array.isArray(dnsaJson.Answer) ? dnsaJson.Answer.length : 0,\n    http_error_code: getErr.code || null,\n    http_error_message: getErr.message || null,\n    robots_error_code: robotsErr.code || null,\n    robots_error_message: robotsErr.message || null\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5620,
+        3240
+      ],
+      "id": "0ca4b107-699e-487e-aa52-3826935e7a92",
+      "name": "Code23"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -7280,
+        3400
+      ],
+      "id": "caea5bb9-4cb8-40b7-98b6-83127e2d87c6",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jzIH8Wa6l9D2pFFa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code (Node v2)\n// Parse LLM outputs like [{ text: \"```json\\n{...}\\n```\" }] into { ok, new_url, potential }\n\nconst items = $input.all();\n\nfunction stripFences(s) {\n  s = String(s ?? \"\").trim();\n  const m = s.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/i);\n  return m ? m[1] : s.replace(/^\\uFEFF/, \"\").trim();\n}\n\nfunction normalizePotential(p) {\n  p = String(p ?? \"\").trim().toLowerCase();\n  return (p === \"yes\" || p === \"no\") ? p : \"no\";\n}\n\nreturn items.map(({ json }) => {\n  const rawText = (json?.text ?? json ?? \"\").toString();\n  const cleaned = stripFences(rawText);\n\n  let parsed;\n  try {\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    return {\n      json: {\n        ok: false,\n        error: \"Failed to parse JSON\",\n        details: String(e.message || e),\n        raw_text: rawText\n      }\n    };\n  }\n\n  const new_url = String(parsed.new_url ?? \"\").trim();\n  const potential = normalizePotential(parsed.potential);\n\n  return {\n    json: {\n      ok: true,\n      new_url,\n      potential\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6940,
+        3240
+      ],
+      "id": "b80811cb-645b-4d93-8488-ea41cda513ba",
+      "name": "Code24"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.potential }}",
+                    "rightValue": "yes",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4b3bf05f-83d7-432a-affb-b951bc2ddc19"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "daf15176-36aa-41d9-8bff-88c6b2c22a4d",
+                    "leftValue": "={{ $json.potential }}",
+                    "rightValue": "no",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -6720,
+        3240
+      ],
+      "id": "29e867dc-78e1-49a1-8b7a-c1e5254319b8",
+      "name": "Switch10"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -5740,
+        4240
+      ],
+      "id": "2fb4ea8f-e248-4127-9e5e-877860c07ebf",
+      "name": "Google Gemini Chat Model16",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jzIH8Wa6l9D2pFFa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -3380,
+        3460
+      ],
+      "id": "a6b1d0cf-b351-4039-94a4-bf5e8d11203a",
+      "name": "Google Gemini Chat Model17",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jzIH8Wa6l9D2pFFa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <Slack API Key Here>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "channel",
+              "value": "<Slack Channel ID here>"
+            },
+            {
+              "name": "blocks",
+              "value": "=[\n    {\n      \"type\": \"section\",\n      \"text\": { \"type\": \"mrkdwn\", \"text\": \"{{ $json.text }}\n\n*Full Report*: <https://docs.google.com/document/d/{{ $('CreateGoogleDoc1').item.json.id }}|Click Here>\" }\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"action_id\": \"disqualify\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Disqualify\" },\n          \"style\": \"danger\",\n          \"value\": \"{{ $('When Executed by Another Workflow').item.json.body['Hubspot Deal ID'] }}\"\n        }\n      ]\n    }\n  ]"
+            },
+            {
+              "name": "thread_ts",
+              "value": "={{ $('When Executed by Another Workflow').item.json.body['Slack Ts'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3080,
+        3240
+      ],
+      "id": "2d7cdead-e1e9-4ffb-ad15-c9789e4def95",
+      "name": "HTTP Request15"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -7360,
+        1280
+      ],
+      "id": "edede30a-2eab-48f2-9a03-b8b6287ffde0",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de1ba086-d292-4246-b6a6-b5cbe4278ac3",
+              "name": "Website Homepage",
+              "value": "={{ $('AI Agent4').item.json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "f5a1b05c-9335-44e2-b80a-21f31b699198",
+              "name": "Website About us page",
+              "value": "={{ $('Code6').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "9e7fcea1-a64f-4fde-8ca9-287a0f4e64cc",
+              "name": "Website Product / service page",
+              "value": "={{ $('Code1').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "8655300f-ed42-43a1-9050-b75bfe3ecfd2",
+              "name": "Website Financial Info Page",
+              "value": "={{ $('Code7').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "8f5898c6-0f9b-44f5-b1aa-6113bbb7c260",
+              "name": "Apollo data Company Name",
+              "value": "={{ $('Edit Fields4').item.json.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "6cb64e13-9df3-4fe6-99df-4e89cdc5a134",
+              "name": "Apollo data Founded year",
+              "value": "={{ $('Edit Fields4').item.json.founded_year }}",
+              "type": "string"
+            },
+            {
+              "id": "2d6d6fba-c382-40ba-8661-21c89fbb97e0",
+              "name": "Apollo data Primary Industry",
+              "value": "={{ $('Edit Fields4').item.json.primary_industry }}",
+              "type": "string"
+            },
+            {
+              "id": "9b08cb92-1601-4cae-b1a9-3bebf8fc09b2",
+              "name": "Apollo data Secondary Industry",
+              "value": "={{ $('Edit Fields4').item.json.secondary_industry }}",
+              "type": "string"
+            },
+            {
+              "id": "8f15de85-afe8-4c40-9776-acfedbb517b5",
+              "name": "Apollo data Employee count",
+              "value": "={{ $('Edit Fields4').item.json.employee_count }}",
+              "type": "string"
+            },
+            {
+              "id": "3fd6fac5-c863-4303-a14b-4ec3d59d8a44",
+              "name": "Apollo data Annual Revenue",
+              "value": "={{ $('Edit Fields4').item.json.annual_revenue }}",
+              "type": "string"
+            },
+            {
+              "id": "5bf1d5fc-9100-407f-a348-65b2dd7c932c",
+              "name": "Apollo data Total Funding",
+              "value": "={{ $('Edit Fields4').item.json.total_funding }}",
+              "type": "string"
+            },
+            {
+              "id": "67f9deaa-b06f-4f4a-a44d-2382fb98d3fd",
+              "name": "Apollo data Latest funding round",
+              "value": "={{ $('Edit Fields4').item.json.latest_funding_round_date }}",
+              "type": "string"
+            },
+            {
+              "id": "dc4956e7-a779-4de7-bb8f-e3fe49985655",
+              "name": "Apollo data Linkedin URL",
+              "value": "={{ $('Edit Fields4').item.json.linkedin_url }}",
+              "type": "string"
+            },
+            {
+              "id": "b3f45226-e7c8-4444-a41e-74d1f602516a",
+              "name": "Apollo Twitter URL",
+              "value": "={{ $('Edit Fields4').item.json.twitter_url }}",
+              "type": "string"
+            },
+            {
+              "id": "95055285-b322-4369-a45e-0e96a041991c",
+              "name": "Apollo Facebook URL",
+              "value": "={{ $('Edit Fields4').item.json.facebook_url }}",
+              "type": "string"
+            },
+            {
+              "id": "dbb56210-a26d-43f5-8fee-780fca2db313",
+              "name": "Apollo Keywords",
+              "value": "={{ $('Edit Fields4').item.json.keywords }}",
+              "type": "string"
+            },
+            {
+              "id": "3f7229ed-f267-466b-b592-4ffbc835d2e9",
+              "name": "Domain",
+              "value": "={{ $('Code').item.json.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "8cd7c542-96df-4e7d-b4d0-7928f575d30f",
+              "name": "Biggest Pain Point",
+              "value": "={{ $('When Executed by Another Workflow').item.json.body[\"Biggest Pain point\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "d503bc4c-e1da-43e5-97d5-bc506034c1b4",
+              "name": "Company URL",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"Company URL\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5814181d-c1e2-441f-91b4-dbdccbb71c13",
+              "name": "Current MRR",
+              "value": "={{ $('When Executed by Another Workflow').item.json.body[\"Current MRR\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a1676161-f71d-406b-9cc4-8debff62ce15",
+              "name": "First Name",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"First Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "cc2405d7-d371-460f-a99f-317935f2bdba",
+              "name": "Last Name",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"Last Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "15c2f547-2183-4146-97cd-d11ee5ad79fc",
+              "name": "Slack Ts",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"Slack Ts\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "1a98411b-5fc2-48cd-bf01-ccd7e548aa12",
+              "name": "Type of Company",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"Type of Company\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "6fe047c4-268e-41d6-a066-fe9251946fa6",
+              "name": "Company Name via website",
+              "value": "={{ $('Edit Fields3').item.json[\"Comapny Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "ce2e6de5-1061-42fc-9104-4ebb9637041c",
+              "name": "Email",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"Email\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "02f6c437-face-47bf-9f76-c507c277607b",
+              "name": "Hubspot Deal ID",
+              "value": "={{ $('When Executed by Another Workflow').item.json[\"Hubspot Deal ID\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1000,
+        2200
+      ],
+      "id": "03e0dc3d-de0c-417a-9907-8f92746e4fb8",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "Yes",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "de5e5c63-f4ad-424b-b925-79b43bc84e8f"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "de95486b-5876-47f3-8056-cddf6def0cd7",
+                    "leftValue": "={{ $json.verdict }}",
+                    "rightValue": "No",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -5440,
+        3240
+      ],
+      "id": "39c488b8-7d8a-4904-a97e-d955396a29d4",
+      "name": "Switch"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        -5500,
+        1260
+      ],
+      "id": "dc0ff3f4-b1bc-4a01-9875-94e39ac12c79",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "=={\n  \"website_url_final\": \"{{ \n    (\n      $json.url_seen ||\n      $json.homepage ||\n      $json.baseUrl ||\n      $json.new_url ||\n      ($json.body && $json.body['Company URL']) ||\n      ''\n    ).toString().trim()\n     .replace(/^['\\\"`]+|['\\\"`]+$/g, '')\n     .replace(/^http:\\/\\//, 'https://')\n  }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5280,
+        1260
+      ],
+      "id": "342fea22-68e5-4216-bd98-0fd132fde8b4",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -7260,
+        4240
+      ],
+      "id": "09789afb-22d4-4863-8f16-2a8a0a39229f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jzIH8Wa6l9D2pFFa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -5120,
+        3460
+      ],
+      "id": "887e540d-0e22-46b9-9a51-feac5e42861e",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jzIH8Wa6l9D2pFFa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "uploadType",
+              "value": "multipart"
+            },
+            {
+              "name": "supportsAllDrives",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "multipart/related; boundary=divider",
+        "body": "={{ $json.rawData }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4120,
+        3240
+      ],
+      "id": "1227eb68-992f-460b-b510-ae7d6aa2b66d",
+      "name": "CreateGoogleDoc1",
+      "notesInFlow": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "h7bEchuF5JB122PT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7ee03ac-13e3-4fca-a7bc-57c8fc56dc42",
+              "name": "document_name",
+              "value": "={{ $json.domain }} <> DL (Research) V2",
+              "type": "string"
+            },
+            {
+              "id": "48a07ef2-ae46-4bfc-aa7e-d92a74ef46d6",
+              "name": "html_content",
+              "value": "=<h2>Data Cant be Extracted</h2>\n{{ $('Basic LLM Chain10').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "22b02fba-ba72-423a-b92f-1191a183a554",
+              "name": "drive_folder_id",
+              "value": "18rZGRH7wtcHBF2ZhJw3jd65RRvJMtfS1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4560,
+        3240
+      ],
+      "id": "bca6ea40-2b3b-41be-9750-81f09e3070c2",
+      "name": "set_fields",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const boundary = 'divider';\nconst docName = $input.first().json.document_name;\nconst folderId = $input.first().json.drive_folder_id;\nconst htmlContent = $input.first().json.html_content;\n\nconst metadata = JSON.stringify({\n  name: docName,\n  mimeType: \"application/vnd.google-apps.document\",\n  parents: [folderId]\n});\n\nconst htmlWithStyles = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    /* Add bottom margin to block elements for spacing */\n    p,\n    ul,\n    ol,\n    table,\n    h1,\n    h2,\n    h3,\n    h4,\n    h5,\n    h6 {\n      margin-bottom: 10pt;\n    }\n\n    h2 {\n      margin-top: 20pt;\n    }\n\n    /* Prevent margin collapse issues or excessive space inside lists */\n    li {\n       margin-bottom: 2pt; /* Optional: small space between list items */\n    }\n\n    /* Remove margin from the last child within common containers if needed */\n    /* This might be overly aggressive, test without it first */\n    /*\n    body > *:last-child,\n    li > *:last-child {\n       margin-bottom: 0;\n    }\n    */\n  </style>\n</head>\n<body>\n  ${htmlContent}\n</body>\n</html>\n`;\n\n// Construct the body with literal \\r\\n ONLY\nlet body = `--${boundary}\\r\\n`;\nbody += `Content-Type: application/json; charset=UTF-8\\r\\n`;\nbody += `\\r\\n`; // Blank line\nbody += `${metadata}\\r\\n`;\nbody += `--${boundary}\\r\\n`;\nbody += `Content-Type: text/html\\r\\n`;\nbody += `\\r\\n`; // Blank line\nbody += `${htmlWithStyles}\\r\\n`; // Add the HTML content\nbody += `--${boundary}--\\r\\n`; // Final boundary\n\nreturn {\n  rawData: body \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4340,
+        3240
+      ],
+      "id": "abc583c4-38bb-4d97-bf83-33e44707df0b",
+      "name": "Prepare_Request"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -3900,
+        3240
+      ],
+      "id": "5f53a2c3-c1dc-47be-8182-424ef99d0336",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "h7bEchuF5JB122PT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const url = $('Edit Fields1').item.json.body['Company URL'];\n\nfunction extractDomain(url) {\n  if (!url) return null;\n  \n  url = url.trim();\n\n  // Remove protocol (http/https)\n  url = url.replace(/^https?:\\/\\//, \"\");\n\n  // Remove www.\n  url = url.replace(/^www\\./, \"\");\n\n  // Get everything before first slash\n  const host = url.split(\"/\")[0];\n\n  // Split into parts\n  const parts = host.split(\".\");\n\n  // If domain has only two parts (example.com), return as-is\n  if (parts.length <= 2) {\n    return host;\n  }\n\n  // Otherwise, take the LAST TWO parts (handles .com, .net, .xyz, .in, etc.)\n  return parts.slice(-2).join(\".\");\n}\n\nreturn {\n  domain: extractDomain(url)\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4780,
+        3240
+      ],
+      "id": "c6886d19-4627-488e-af5f-361f1d31781e",
+      "name": "Code9"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/upload/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "uploadType",
+              "value": "multipart"
+            },
+            {
+              "name": "supportsAllDrives",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "multipart/related; boundary=divider",
+        "body": "={{ $json.rawData }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6400,
+        4080
+      ],
+      "id": "02b2bf2a-fc75-4af0-9ea8-f7f317c39add",
+      "name": "CreateGoogleDoc2",
+      "notesInFlow": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "h7bEchuF5JB122PT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7ee03ac-13e3-4fca-a7bc-57c8fc56dc42",
+              "name": "document_name",
+              "value": "={{ $json.domain }} <> DL (Research) V2",
+              "type": "string"
+            },
+            {
+              "id": "48a07ef2-ae46-4bfc-aa7e-d92a74ef46d6",
+              "name": "html_content",
+              "value": "=<h2>Data Cant be Extracted</h2>\n{{ $('Basic LLM Chain9').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "22b02fba-ba72-423a-b92f-1191a183a554",
+              "name": "drive_folder_id",
+              "value": "18rZGRH7wtcHBF2ZhJw3jd65RRvJMtfS1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -6800,
+        4080
+      ],
+      "id": "824fbf41-2d5c-44e3-8b2d-1484b1d30db7",
+      "name": "set_fields2",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const boundary = 'divider';\nconst docName = $input.first().json.document_name;\nconst folderId = $input.first().json.drive_folder_id;\nconst htmlContent = $input.first().json.html_content;\n\nconst metadata = JSON.stringify({\n  name: docName,\n  mimeType: \"application/vnd.google-apps.document\",\n  parents: [folderId]\n});\n\nconst htmlWithStyles = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    /* Add bottom margin to block elements for spacing */\n    p,\n    ul,\n    ol,\n    table,\n    h1,\n    h2,\n    h3,\n    h4,\n    h5,\n    h6 {\n      margin-bottom: 10pt;\n    }\n\n    h2 {\n      margin-top: 20pt;\n    }\n\n    /* Prevent margin collapse issues or excessive space inside lists */\n    li {\n       margin-bottom: 2pt; /* Optional: small space between list items */\n    }\n\n    /* Remove margin from the last child within common containers if needed */\n    /* This might be overly aggressive, test without it first */\n    /*\n    body > *:last-child,\n    li > *:last-child {\n       margin-bottom: 0;\n    }\n    */\n  </style>\n</head>\n<body>\n  ${htmlContent}\n</body>\n</html>\n`;\n\n// Construct the body with literal \\r\\n ONLY\nlet body = `--${boundary}\\r\\n`;\nbody += `Content-Type: application/json; charset=UTF-8\\r\\n`;\nbody += `\\r\\n`; // Blank line\nbody += `${metadata}\\r\\n`;\nbody += `--${boundary}\\r\\n`;\nbody += `Content-Type: text/html\\r\\n`;\nbody += `\\r\\n`; // Blank line\nbody += `${htmlWithStyles}\\r\\n`; // Add the HTML content\nbody += `--${boundary}--\\r\\n`; // Final boundary\n\nreturn {\n  rawData: body \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6600,
+        4080
+      ],
+      "id": "b26787ea-8f42-4ae1-8c97-759d8ebe127c",
+      "name": "Prepare_Request2"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -6200,
+        4080
+      ],
+      "id": "f5db0c64-0c3c-46cf-9a79-00fb5fd5eaab",
+      "name": "Share file2",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "h7bEchuF5JB122PT",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const url = $('When Executed by Another Workflow').item.json.body['Company URL'];\n\nfunction extractDomain(url) {\n  if (!url) return null;\n  \n  url = url.trim();\n\n  // Remove protocol (http/https)\n  url = url.replace(/^https?:\\/\\//, \"\");\n\n  // Remove www.\n  url = url.replace(/^www\\./, \"\");\n\n  // Get everything before first slash\n  const host = url.split(\"/\")[0];\n\n  // Split into parts\n  const parts = host.split(\".\");\n\n  // If domain has only two parts (example.com), return as-is\n  if (parts.length <= 2) {\n    return host;\n  }\n\n  // Otherwise, take the LAST TWO parts (handles .com, .net, .xyz, .in, etc.)\n  return parts.slice(-2).join(\".\");\n}\n\nreturn {\n  domain: extractDomain(url)\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -7000,
+        4080
+      ],
+      "id": "b362d00d-96b8-4460-9bd4-5ac2d51484de",
+      "name": "Code11"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -5660,
+        2220
+      ],
+      "id": "1e5a6f3c-d983-45be-8b06-7b2ac6950c39",
+      "name": "Wait",
+      "webhookId": "2be167e8-277b-4bc3-aef6-c434d0453307"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3740,
+        2240
+      ],
+      "id": "4496add7-95e9-4737-b157-65cc88ed4504",
+      "name": "Wait1",
+      "webhookId": "e4811b3f-7289-4ed5-b96a-18531ec336f8"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code (JavaScript) node\n// Input: $input.first().json (HTML in `body` or `data`, or a raw string)\n// Output: { clean_html, removed: { blocks, anchors, urls } }\n\ntry {\n  // ---- get input safely from $input.first().json ----\n  const input = $input.first()?.json ?? {};\n  let raw = typeof input === \"string\"\n    ? input\n    : String(input.body ?? input.data ?? input.html ?? \"\");\n\n  // ---- remove big nav/chrome blocks ----\n  function stripNavigationBlocks(html) {\n    let removedBlocks = 0;\n    const patterns = [\n      /<nav\\b[^>]*>[\\s\\S]*?<\\/nav>/gi,\n      /<(header|footer|aside)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,\n      /<([a-z0-9:-]+)\\b[^>]*\\brole\\s*=\\s*[\"']?navigation[\"']?[^>]*>[\\s\\S]*?<\\/\\1>/gi,\n      /<([a-z0-9:-]+)\\b[^>]*\\b(id|class)\\s*=\\s*[\"'][^\"']*\\b(nav|navbar|menu|menubar|mega-menu|sidenav|sidebar|site-nav|header-nav|footer-nav|topbar|breadcrumbs?|breadcrumb-trail|pagination|pager|cookie|consent|gdpr|cookie-banner)\\b[^\"']*[\"'][^>]*>[\\s\\S]*?<\\/\\1>/gi,\n    ];\n    for (const rx of patterns) {\n      html = html.replace(rx, () => { removedBlocks++; return \"\"; });\n    }\n    return { html, removedBlocks };\n  }\n\n  // ---- unwrap nav-ish anchors, drop anchors that show naked URLs ----\n  function stripNavAnchors(html) {\n    let removedAnchors = 0;\n    const navWords = new Set([\n      \"home\",\"about\",\"contact\",\"services\",\"pricing\",\"blog\",\"news\",\"careers\",\"jobs\",\"faq\",\n      \"help\",\"support\",\"login\",\"log in\",\"sign in\",\"signup\",\"sign up\",\"register\",\"account\",\n      \"profile\",\"dashboard\",\"cart\",\"privacy\",\"terms\",\"cookies\",\"sitemap\",\"next\",\"prev\",\"previous\",\n      \"more\",\"menu\",\"back\",\"subscribe\"\n    ]);\n    const hrefNavPatterns = [\n      /^#/,\n      /^javascript:/i,\n      /\\/(category|categories|tag|topics)\\b/i,\n      /\\/(login|signin|signup|register|account|profile)\\b/i,\n      /\\/(privacy|terms|cookies|legal|gdpr)\\b/i,\n      /\\/(sitemap|search|feed|rss)\\b/i,\n      /[?&](page|utm_|fbclid|gclid|ref|sort|filter)=/i,\n      /\\/page\\/\\d+/i\n    ];\n    const urlTextRx = /\\b(https?:\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+|[a-zA-Z0-9.-]+\\.(com|org|net|io|co|ai|dev|app|site|info|biz|news|gov|edu|in|uk|us|ca|au|de|fr|jp|cn)(\\/[^\\s<>\"']*)?)\\b/;\n\n    function looksNavAnchor(attrs, text) {\n      const t = (text || \"\").trim().toLowerCase();\n      const shortish = t.length <= 30;\n      const hasNavWord = navWords.has(t) || [...navWords].some(w => t.startsWith(w + \" \"));\n\n      const cls = ((attrs.match(/\\bclass\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n      const role = ((attrs.match(/\\brole\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n      const href = ((attrs.match(/\\bhref\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n\n      const clsNav = /\\b(nav|navbar|menu|menubar|breadcrumbs?|pagination|pager|btn|button|tab|footer|header|sidenav|sidebar)\\b/i.test(cls);\n      const roleNav = /\\b(navigation|menuitem|tab|button)\\b/i.test(role);\n      const hrefNav = href && hrefNavPatterns.some(rx => rx.test(href));\n\n      return clsNav || roleNav || (hrefNav && (shortish || hasNavWord));\n    }\n\n    html = html.replace(/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi, (m, attrs, inner) => {\n      const innerText = inner.replace(/<[^>]+>/g, \" \").replace(/\\s+/g, \" \").trim();\n\n      if (urlTextRx.test(innerText)) {\n        removedAnchors++;\n        return \"\";\n      }\n\n      if (looksNavAnchor(attrs, innerText)) {\n        removedAnchors++;\n        return innerText;\n      }\n\n      return m;\n    });\n\n    return { html, removedAnchors };\n  }\n\n  // ---- remove visible (plaintext) URLs from text nodes ----\n  function removeVisibleUrls(html) {\n    let urlsRemoved = 0;\n    const urlRx = /\\b(https?:\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+|[a-zA-Z0-9.-]+\\.(com|org|net|io|co|ai|dev|app|site|info|biz|news|gov|edu|in|uk|us|ca|au|de|fr|jp|cn)(\\/[^\\s<>\"']*)?)\\b/g;\n\n    const parts = html.split(/(<[^>]+>)/g);\n    for (let i = 0; i < parts.length; i++) {\n      if (i % 2 === 0) {\n        parts[i] = parts[i].replace(urlRx, () => { urlsRemoved++; return \"\"; }).replace(/\\s{2,}/g, \" \");\n      }\n    }\n    return { html: parts.join(\"\"), urlsRemoved };\n  }\n\n  // ---- light HTML minify ----\n  function lightMinifyHtml(html){\n    return html\n      .replace(/<!--[\\s\\S]*?-->/g, \"\")\n      .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, \"\")\n      .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, \"\")\n      .replace(/\\s+/g, \" \")\n      .replace(/>\\s+</g, \"><\")\n      .trim();\n  }\n\n  // ---- pipeline ----\n  let html = raw;\n  const b1 = stripNavigationBlocks(html);\n  html = b1.html;\n\n  const a1 = stripNavAnchors(html);\n  html = a1.html;\n\n  const u1 = removeVisibleUrls(html);\n  html = u1.html;\n\n  html = lightMinifyHtml(html);\n\n  return [{\n    json: {\n      clean_html: html,\n      removed: { blocks: b1.removedBlocks, anchors: a1.removedAnchors, urls: u1.urlsRemoved }\n    }\n  }];\n\n} catch {\n  const input = $input.first()?.json ?? {};\n  const fallback = typeof input === \"string\"\n    ? input\n    : String(input.body ?? input.data ?? input.html ?? \"\");\n  return [{\n    json: {\n      clean_html: fallback,\n      removed: { blocks: 0, anchors: 0, urls: 0 },\n      note: \"returned original html (fallback)\"\n    }\n  }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3080,
+        2140
+      ],
+      "id": "9062112e-b005-4841-9d76-472ba303685e",
+      "name": "Code10"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code (JavaScript) node\n// Input: $input.first().json (HTML in `body` or `data`, or a raw string)\n// Output: { clean_html, removed: { blocks, anchors, urls } }\n\ntry {\n  // ---- get input safely from $input.first().json ----\n  const input = $input.first()?.json ?? {};\n  let raw = typeof input === \"string\"\n    ? input\n    : String(input.body ?? input.data ?? input.html ?? \"\");\n\n  // ---- remove big nav/chrome blocks ----\n  function stripNavigationBlocks(html) {\n    let removedBlocks = 0;\n    const patterns = [\n      /<nav\\b[^>]*>[\\s\\S]*?<\\/nav>/gi,\n      /<(header|footer|aside)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,\n      /<([a-z0-9:-]+)\\b[^>]*\\brole\\s*=\\s*[\"']?navigation[\"']?[^>]*>[\\s\\S]*?<\\/\\1>/gi,\n      /<([a-z0-9:-]+)\\b[^>]*\\b(id|class)\\s*=\\s*[\"'][^\"']*\\b(nav|navbar|menu|menubar|mega-menu|sidenav|sidebar|site-nav|header-nav|footer-nav|topbar|breadcrumbs?|breadcrumb-trail|pagination|pager|cookie|consent|gdpr|cookie-banner)\\b[^\"']*[\"'][^>]*>[\\s\\S]*?<\\/\\1>/gi,\n    ];\n    for (const rx of patterns) {\n      html = html.replace(rx, () => { removedBlocks++; return \"\"; });\n    }\n    return { html, removedBlocks };\n  }\n\n  // ---- unwrap nav-ish anchors, drop anchors that show naked URLs ----\n  function stripNavAnchors(html) {\n    let removedAnchors = 0;\n    const navWords = new Set([\n      \"home\",\"about\",\"contact\",\"services\",\"pricing\",\"blog\",\"news\",\"careers\",\"jobs\",\"faq\",\n      \"help\",\"support\",\"login\",\"log in\",\"sign in\",\"signup\",\"sign up\",\"register\",\"account\",\n      \"profile\",\"dashboard\",\"cart\",\"privacy\",\"terms\",\"cookies\",\"sitemap\",\"next\",\"prev\",\"previous\",\n      \"more\",\"menu\",\"back\",\"subscribe\"\n    ]);\n    const hrefNavPatterns = [\n      /^#/,\n      /^javascript:/i,\n      /\\/(category|categories|tag|topics)\\b/i,\n      /\\/(login|signin|signup|register|account|profile)\\b/i,\n      /\\/(privacy|terms|cookies|legal|gdpr)\\b/i,\n      /\\/(sitemap|search|feed|rss)\\b/i,\n      /[?&](page|utm_|fbclid|gclid|ref|sort|filter)=/i,\n      /\\/page\\/\\d+/i\n    ];\n    const urlTextRx = /\\b(https?:\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+|[a-zA-Z0-9.-]+\\.(com|org|net|io|co|ai|dev|app|site|info|biz|news|gov|edu|in|uk|us|ca|au|de|fr|jp|cn)(\\/[^\\s<>\"']*)?)\\b/;\n\n    function looksNavAnchor(attrs, text) {\n      const t = (text || \"\").trim().toLowerCase();\n      const shortish = t.length <= 30;\n      const hasNavWord = navWords.has(t) || [...navWords].some(w => t.startsWith(w + \" \"));\n\n      const cls = ((attrs.match(/\\bclass\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n      const role = ((attrs.match(/\\brole\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n      const href = ((attrs.match(/\\bhref\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n\n      const clsNav = /\\b(nav|navbar|menu|menubar|breadcrumbs?|pagination|pager|btn|button|tab|footer|header|sidenav|sidebar)\\b/i.test(cls);\n      const roleNav = /\\b(navigation|menuitem|tab|button)\\b/i.test(role);\n      const hrefNav = href && hrefNavPatterns.some(rx => rx.test(href));\n\n      return clsNav || roleNav || (hrefNav && (shortish || hasNavWord));\n    }\n\n    html = html.replace(/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi, (m, attrs, inner) => {\n      const innerText = inner.replace(/<[^>]+>/g, \" \").replace(/\\s+/g, \" \").trim();\n\n      if (urlTextRx.test(innerText)) {\n        removedAnchors++;\n        return \"\";\n      }\n\n      if (looksNavAnchor(attrs, innerText)) {\n        removedAnchors++;\n        return innerText;\n      }\n\n      return m;\n    });\n\n    return { html, removedAnchors };\n  }\n\n  // ---- remove visible (plaintext) URLs from text nodes ----\n  function removeVisibleUrls(html) {\n    let urlsRemoved = 0;\n    const urlRx = /\\b(https?:\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+|[a-zA-Z0-9.-]+\\.(com|org|net|io|co|ai|dev|app|site|info|biz|news|gov|edu|in|uk|us|ca|au|de|fr|jp|cn)(\\/[^\\s<>\"']*)?)\\b/g;\n\n    const parts = html.split(/(<[^>]+>)/g);\n    for (let i = 0; i < parts.length; i++) {\n      if (i % 2 === 0) {\n        parts[i] = parts[i].replace(urlRx, () => { urlsRemoved++; return \"\"; }).replace(/\\s{2,}/g, \" \");\n      }\n    }\n    return { html: parts.join(\"\"), urlsRemoved };\n  }\n\n  // ---- light HTML minify ----\n  function lightMinifyHtml(html){\n    return html\n      .replace(/<!--[\\s\\S]*?-->/g, \"\")\n      .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, \"\")\n      .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, \"\")\n      .replace(/\\s+/g, \" \")\n      .replace(/>\\s+</g, \"><\")\n      .trim();\n  }\n\n  // ---- pipeline ----\n  let html = raw;\n  const b1 = stripNavigationBlocks(html);\n  html = b1.html;\n\n  const a1 = stripNavAnchors(html);\n  html = a1.html;\n\n  const u1 = removeVisibleUrls(html);\n  html = u1.html;\n\n  html = lightMinifyHtml(html);\n\n  return [{\n    json: {\n      clean_html: html,\n      removed: { blocks: b1.removedBlocks, anchors: a1.removedAnchors, urls: u1.urlsRemoved }\n    }\n  }];\n\n} catch {\n  const input = $input.first()?.json ?? {};\n  const fallback = typeof input === \"string\"\n    ? input\n    : String(input.body ?? input.data ?? input.html ?? \"\");\n  return [{\n    json: {\n      clean_html: fallback,\n      removed: { blocks: 0, anchors: 0, urls: 0 },\n      note: \"returned original html (fallback)\"\n    }\n  }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4540,
+        2140
+      ],
+      "id": "726e44fa-1331-4887-a91d-68203489fdb0",
+      "name": "Code12"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code (JavaScript) node\n// Input: $input.first().json (HTML in `body` or `data`, or a raw string)\n// Output: { clean_html, removed: { blocks, anchors, urls } }\n\ntry {\n  // ---- get input safely from $input.first().json ----\n  const input = $input.first()?.json ?? {};\n  let raw = typeof input === \"string\"\n    ? input\n    : String(input.body ?? input.data ?? input.html ?? \"\");\n\n  // ---- remove big nav/chrome blocks ----\n  function stripNavigationBlocks(html) {\n    let removedBlocks = 0;\n    const patterns = [\n      /<nav\\b[^>]*>[\\s\\S]*?<\\/nav>/gi,\n      /<(header|footer|aside)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi,\n      /<([a-z0-9:-]+)\\b[^>]*\\brole\\s*=\\s*[\"']?navigation[\"']?[^>]*>[\\s\\S]*?<\\/\\1>/gi,\n      /<([a-z0-9:-]+)\\b[^>]*\\b(id|class)\\s*=\\s*[\"'][^\"']*\\b(nav|navbar|menu|menubar|mega-menu|sidenav|sidebar|site-nav|header-nav|footer-nav|topbar|breadcrumbs?|breadcrumb-trail|pagination|pager|cookie|consent|gdpr|cookie-banner)\\b[^\"']*[\"'][^>]*>[\\s\\S]*?<\\/\\1>/gi,\n    ];\n    for (const rx of patterns) {\n      html = html.replace(rx, () => { removedBlocks++; return \"\"; });\n    }\n    return { html, removedBlocks };\n  }\n\n  // ---- unwrap nav-ish anchors, drop anchors that show naked URLs ----\n  function stripNavAnchors(html) {\n    let removedAnchors = 0;\n    const navWords = new Set([\n      \"home\",\"about\",\"contact\",\"services\",\"pricing\",\"blog\",\"news\",\"careers\",\"jobs\",\"faq\",\n      \"help\",\"support\",\"login\",\"log in\",\"sign in\",\"signup\",\"sign up\",\"register\",\"account\",\n      \"profile\",\"dashboard\",\"cart\",\"privacy\",\"terms\",\"cookies\",\"sitemap\",\"next\",\"prev\",\"previous\",\n      \"more\",\"menu\",\"back\",\"subscribe\"\n    ]);\n    const hrefNavPatterns = [\n      /^#/,\n      /^javascript:/i,\n      /\\/(category|categories|tag|topics)\\b/i,\n      /\\/(login|signin|signup|register|account|profile)\\b/i,\n      /\\/(privacy|terms|cookies|legal|gdpr)\\b/i,\n      /\\/(sitemap|search|feed|rss)\\b/i,\n      /[?&](page|utm_|fbclid|gclid|ref|sort|filter)=/i,\n      /\\/page\\/\\d+/i\n    ];\n    const urlTextRx = /\\b(https?:\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+|[a-zA-Z0-9.-]+\\.(com|org|net|io|co|ai|dev|app|site|info|biz|news|gov|edu|in|uk|us|ca|au|de|fr|jp|cn)(\\/[^\\s<>\"']*)?)\\b/;\n\n    function looksNavAnchor(attrs, text) {\n      const t = (text || \"\").trim().toLowerCase();\n      const shortish = t.length <= 30;\n      const hasNavWord = navWords.has(t) || [...navWords].some(w => t.startsWith(w + \" \"));\n\n      const cls = ((attrs.match(/\\bclass\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n      const role = ((attrs.match(/\\brole\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n      const href = ((attrs.match(/\\bhref\\s*=\\s*[\"']([^\"']+)[\"']/i)?.[1]) || \"\").toLowerCase();\n\n      const clsNav = /\\b(nav|navbar|menu|menubar|breadcrumbs?|pagination|pager|btn|button|tab|footer|header|sidenav|sidebar)\\b/i.test(cls);\n      const roleNav = /\\b(navigation|menuitem|tab|button)\\b/i.test(role);\n      const hrefNav = href && hrefNavPatterns.some(rx => rx.test(href));\n\n      return clsNav || roleNav || (hrefNav && (shortish || hasNavWord));\n    }\n\n    html = html.replace(/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi, (m, attrs, inner) => {\n      const innerText = inner.replace(/<[^>]+>/g, \" \").replace(/\\s+/g, \" \").trim();\n\n      if (urlTextRx.test(innerText)) {\n        removedAnchors++;\n        return \"\";\n      }\n\n      if (looksNavAnchor(attrs, innerText)) {\n        removedAnchors++;\n        return innerText;\n      }\n\n      return m;\n    });\n\n    return { html, removedAnchors };\n  }\n\n  // ---- remove visible (plaintext) URLs from text nodes ----\n  function removeVisibleUrls(html) {\n    let urlsRemoved = 0;\n    const urlRx = /\\b(https?:\\/\\/[^\\s<>\"']+|www\\.[^\\s<>\"']+|[a-zA-Z0-9.-]+\\.(com|org|net|io|co|ai|dev|app|site|info|biz|news|gov|edu|in|uk|us|ca|au|de|fr|jp|cn)(\\/[^\\s<>\"']*)?)\\b/g;\n\n    const parts = html.split(/(<[^>]+>)/g);\n    for (let i = 0; i < parts.length; i++) {\n      if (i % 2 === 0) {\n        parts[i] = parts[i].replace(urlRx, () => { urlsRemoved++; return \"\"; }).replace(/\\s{2,}/g, \" \");\n      }\n    }\n    return { html: parts.join(\"\"), urlsRemoved };\n  }\n\n  // ---- light HTML minify ----\n  function lightMinifyHtml(html){\n    return html\n      .replace(/<!--[\\s\\S]*?-->/g, \"\")\n      .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, \"\")\n      .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, \"\")\n      .replace(/\\s+/g, \" \")\n      .replace(/>\\s+</g, \"><\")\n      .trim();\n  }\n\n  // ---- pipeline ----\n  let html = raw;\n  const b1 = stripNavigationBlocks(html);\n  html = b1.html;\n\n  const a1 = stripNavAnchors(html);\n  html = a1.html;\n\n  const u1 = removeVisibleUrls(html);\n  html = u1.html;\n\n  html = lightMinifyHtml(html);\n\n  return [{\n    json: {\n      clean_html: html,\n      removed: { blocks: b1.removedBlocks, anchors: a1.removedAnchors, urls: u1.urlsRemoved }\n    }\n  }];\n\n} catch {\n  const input = $input.first()?.json ?? {};\n  const fallback = typeof input === \"string\"\n    ? input\n    : String(input.body ?? input.data ?? input.html ?? \"\");\n  return [{\n    json: {\n      clean_html: fallback,\n      removed: { blocks: 0, anchors: 0, urls: 0 },\n      note: \"returned original html (fallback)\"\n    }\n  }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1840,
+        2140
+      ],
+      "id": "528b9fcd-2ec0-4242-874b-043e0ae7639e",
+      "name": "Code13"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -6000,
+        4080
+      ],
+      "id": "554c5556-7d7f-41fd-b4a4-8dffa42c82af",
+      "name": "Wait2",
+      "webhookId": "35fdfca5-568d-45b0-943a-4d9f0ec1de2c"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3680,
+        3240
+      ],
+      "id": "2c033a73-be68-44a0-a698-0e000cadecd2",
+      "name": "Wait3",
+      "webhookId": "b2f2bd4f-211f-4e23-be95-5b99423f982f"
+    },
+    {
+      "parameters": {
+        "content": "## **Website Scrape Readiness → Yes/No Verdict → Route**\n\n**When Executed by Another Workflow** ingests **Company URL** → **Code15** cleans/normalizes, extracts **scheme/host/canonicalHost**, builds **homepage** + **robotsUrl** → **HTTP Request10 (DNS)** checks A record for **canonicalHost** → **HTTP Request5 (Homepage)** fetches homepage (200–399 allowed; limited redirects) → **HTTP Request7 (Robots)** fetches `/robots.txt` (neverError).\n\n**Verdict (exactly two states):**\n- **Yes** → All true: **baseUrl exists** ✅ **DNS A record present** ✅ **homepage status 200–399** ✅ **robots.txt does NOT contain `User-agent: *` + `Disallow: /`** ✅\n- **No** → Anything else (missing/invalid host, DNS failure, non-200–399 homepage, robots disallows `/`, robots not reachable, parked/anti-bot patterns, etc.)\n\n**Switch5** routes on **verdict**:\n- **Yes** → continue to scrape/enrichment path.\n- **No** → branch to fallback/skip/log path.\n\n**Result:** One clear **Yes/No** gate after URL hygiene + DNS + homepage + robots checks; downstream flow is cleanly routed.\n\n**Note:** In **Switch5**, the second rule should match **\"No\"** (not empty string) to reflect the two-verdict model.\n",
+        "height": 604,
+        "width": 1688
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -7420,
+        900
+      ],
+      "typeVersion": 1,
+      "id": "03615ebd-b295-4383-afc5-d50856746f41",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## **URL Candidate Finder (Business Email Check) → Propose New URL → Route**\n\n**AI Agent6 (Gemini)** takes **submitted_url**, **submitted_email**, **error_signals** → returns strict JSON: **{ new_url, potential }** (only **potential = \"yes\"** when **new_url** is non-empty and different).\n\n**Code24** strips fences, parses JSON → outputs **{ ok, new_url, potential }**.\n\n**Switch10** routes on **potential**:\n- **yes** → use **new_url** as the proposed homepage.\n- **no** → **Path 1 (fallback)**.\n\n**Heuristics inside AI Agent6**:\n- **Subdomain fix** (NXDOMAIN/ENOTFOUND etc.): propose **apex** domain (public-suffix aware), `https://<apex>/`.\n- **Email-derived** if business domain and different from submitted: `https://<email-domain>/`.\n- Normalize: **https**, lowercase host, strip path/query, **trailing slash**.\n\n**Result:** If a viable alternative exists → propose and route; otherwise → fallback.\n",
+        "height": 648,
+        "width": 824
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -7380,
+        2800
+      ],
+      "typeVersion": 1,
+      "id": "2d86cd19-6f85-4b74-a4ec-a58cdab7dab9",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## **Email-Derived Website Retest → Normalize & Verify → Route**\n\n**Goal:** If the lead’s email is a **business domain**, try **https://<email-domain>/** and fully re-check reachability before scraping.\n\n**Code22** builds a clean origin from any provided URL/domain (forces **https**, extracts **host**, sets **homepage** + **robotsUrl**).\n\n**HTTP Request14** does **DNS A** lookup via **dns.google**.  \n**HTTP Request13** fetches **homepage** (follows redirects, text mode).  \n**HTTP Request12** fetches **robots.txt** (neverError, text).\n\n**Code23** compiles signals → verdict: **Yes** (HTML reachable, DNS OK, robots allows “/”; anti-bot tolerated) or **No** (NXDOMAIN/parked/blocked/non-HTML/robots “/” disallow).\n\n**Switch** routes by **verdict**:\n- **Yes** → proceed with scrape path.\n- **No** → fallback path.\n\n**Result:** Email-derived domain is normalized, DNS + HTTP + robots validated, then cleanly routed on a strict **Yes/No** decision.\n",
+        "height": 680,
+        "width": 1204
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -6500,
+        2800
+      ],
+      "typeVersion": 1,
+      "id": "51042c7d-7eb3-49a8-8852-24f164e1f2c8",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## **Error Explainer → Google Doc Builder**\n\n**AI Agent9** → Builds an **HTML <ul>** explaining why the URL failed (DNS/HTTP/robots/anti-bot/parked, etc.), always adds:\n- **No alternative website candidates** line\n- **Free-email notice** when applicable\n\n**Code11** → Extracts **domain** from the original **Company URL** for naming.\n\n**set_fields2** → Assembles **document_name** = “{domain} <> DL (Research) V2”, injects the **HTML bullets** into **html_content**, and sets the **Drive folder**.\n\n**Prepare_Request2** → Wraps **metadata + styled HTML** into **multipart/related** with boundary **divider**.\n\n**CreateGoogleDoc2** → **POST** to Drive **uploadType=multipart** to create a **Google Doc**.\n\n**Share file2** → Sets **anyone / reader** permission and returns a **public link** for downstream Slack/HubSpot updates.\n",
+        "height": 680,
+        "width": 1312
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -7380,
+        3740
+      ],
+      "typeVersion": 1,
+      "id": "c695fd19-0060-4f9d-975e-a07fff3f7ce9",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## **Slack Summary**\n\n**AI Agent5** → Generates a strict **Disqualified**.\n- Sets **Business Fit / Revenue / Decision Power = Pending**.  \n- Builds **Additional Flags** only from `url_context` + `email_context` (e.g., “:x: Apex failed (ENOTFOUND)”, “:x: Gmail/free email)”.  \n- No links or new URL proposals in the text itself.\n\n**HTTP Request15** → Posts to the specified **Slack thread** (`thread_ts`) with:\n- The LLM block (`{{ $json.text }}`)  \n- A **“Disqualify”** button \n- **Full Report** link to the Google Doc (`CreateGoogleDoc1.id`)\n\n**Google Gemini Chat Model17** → Language model backing for **AI Agent5**.\n\n**HubSpot deal update (downstream)** → Use the same **Deal ID** to write back the **Google Doc URL** to your deal field (e.g., `company_research_summary_doc_url`) after the Slack post.\n",
+        "height": 764,
+        "width": 576
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5860,
+        3660
+      ],
+      "typeVersion": 1,
+      "id": "0458ae6d-82c0-4738-b627-0b63baaf6e88",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## **Post Email-Domain Failure → Error Doc Builder**\n\n**When:** Email-derived domain retest returns **No** (unreachable/invalid).  \n**Goal:** Produce a concise HTML **error summary** and upload a **styled Google Doc** with a shareable link.\n\n**AI Agent7** builds a strict **HTML <ul>** with bullets explaining why the site can’t be used:\n- Parses **DNS/HTTP/robots/anti-bot/parked** signals.\n- Always adds **“No alternative website candidates”** bullet.\n- Adds **free-email warning** when applicable.\n\n**Code9** extracts a clean **registrable domain** for naming.  \n**set_fields** prepares **document_name**, **html_content** (header + bullets), and **drive_folder_id**.  \n**Prepare_Request** wraps **metadata + styled HTML** as **multipart/related** (boundary **divider**).  \n**CreateGoogleDoc1** uploads to Drive as a **Google Doc** (`uploadType=multipart`, **supportsAllDrives**).  \n**Share file** sets **anyone / reader** permission and returns a public link.\n\n**Result:** Clear, user-friendly **failure report** (Google Doc) with all relevant diagnostics and a ready-to-share URL.\n",
+        "height": 808,
+        "width": 1540
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5260,
+        2820
+      ],
+      "typeVersion": 1,
+      "id": "17c66ad1-b35b-430e-a6ff-c24bb169422a",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## **Slack Summary**\n\n**AI Agent5** → Generates a strict **Disqualified**.\n- Sets **Business Fit / Revenue / Decision Power = Pending**.  \n- Builds **Additional Flags** only from `url_context` + `email_context` (e.g., “:x: Apex failed (ENOTFOUND)”, “:x: Gmail/free email)”.  \n- No links or new URL proposals in the text itself.\n\n**HTTP Request15** → Posts to the specified **Slack thread** (`thread_ts`) with:\n- The LLM block (`{{ $json.text }}`)  \n- A **“Disqualify”** button \n- **Full Report** link to the Google Doc (`CreateGoogleDoc1.id`)\n\n**Google Gemini Chat Model17** → Language model backing for **AI Agent5**.\n\n**HubSpot deal update (downstream)** → Use the same **Deal ID** to write back the **Google Doc URL** to your deal field (e.g., `company_research_summary_doc_url`) after the Slack post.\n",
+        "height": 804,
+        "width": 636
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3500,
+        2820
+      ],
+      "typeVersion": 1,
+      "id": "3d2b8d6a-3497-45cb-9c12-0340b043a714",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "## **Apollo Organization Enrichment → Domain → API → Map**\n\n**Edit Fields2** builds **website_url_final** from any available URL field (`url_seen` → `homepage` → `baseUrl` → `new_url` → `body['Company URL']`), trims quotes, and forces **https**.\n\n**Code** extracts the registrable **domain** from **website_url_final** (drops protocol/`www`, keeps last two labels).\n\n**Apollo Organization Details2** calls **Apollo Organizations Enrich** with `?domain={{ $json.domain }}` (headers: **X-Api-Key**, JSON, `neverError`).\n\n**Edit Fields4** maps enrichment to clean fields for downstream:\n- **company_name**, **founded_year**\n- **primary_industry**, **secondary_industry**\n- **employee_count**, **annual_revenue**\n- **total_funding**, **latest_funding_round_date**\n- **linkedin_url**, **twitter_url**, **facebook_url**\n- **keywords** (first 6, comma-joined; fallback **Not Found**)\n\n**Edit Fields** derives **funding_date** = `latest_funding_round_date.split('T')[0]`.\n\n**Code5** (helper) constructs a normalized **https://Company URL** passthrough (optional for later nodes).\n\n**Result:** Verified **domain** → Apollo **enrichment JSON** → standardized fields (name, industries, size, revenue/funding, socials, keywords, founded year, latest funding date) ready for routing to sheets/LLM/Slack.\n",
+        "height": 744,
+        "width": 1356
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5340,
+        780
+      ],
+      "typeVersion": 1,
+      "id": "b404e95b-bce6-46fc-a13d-045bd389e4ab",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## **Homepage Scrape → LLM Summary → Link Categorizer**\n\n**Homepage fetch → HTML Clean → LLM Summary** generates structured company bullets → **Link Harvester/Normalizer** extracts + dedups all internal links → **Categorizer** buckets them by keywords:\n\n- **About Us** → about, team, mission, values, story  \n- **Products/Services** → product, features, pricing, services, solutions  \n- **Financial Info** → investor, ir, press, news, reports  \n\n**Result:** Concise homepage summary + 3 categorized link groups for downstream scraping.\n\n---\n\n## **Apollo Organization Enrichment → Domain → API → Map**\n\n**Edit Fields2** builds final URL → **Code** extracts domain → **Apollo API** enriches org data by domain → **Edit Fields4** maps fields: company, industries, employees, revenue, funding, socials, keywords, founded year, funding date → **Edit Fields** cleans funding_date.  \n\n**Result:** Clean Apollo enrichment JSON with all key org details, ready for LLM/Slack/Sheets.\n",
+        "height": 824,
+        "width": 1648
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -7340,
+        1760
+      ],
+      "typeVersion": 1,
+      "id": "085dff64-7b8f-4450-80a1-86e111f8f2b5",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "## **LLM URL Picker → Targeted Scrape → Clean Summaries → Map**\n\n**AI Agent3 (with Structured Output Parser + Gemini)** selects one URL each for **About Us**, **Product/Service**, **Financial** from discovered links → returns JSON.\n\n**Switch2 / Switch3 / Switch4** route per field:\n- **URL found** → **BrightData Scrape** (per category).\n- **Not Found** → skip to fallback.\n\n**Code12 / Code10 / Code13** clean scraped HTML (strip nav/footers, junk anchors/URLs, scripts/styles, light minify).\n\n**AI Agent / AI Agent1 / AI Agent2 (Gemini)** summarize each cleaned page into structured JSON:\n- **About Us**, **Product / Service**, **Financial Overview**.\n\n**Code6 / Code1 / Code7** normalize outputs with fallback `\"Couldn't Found\"`.\n\n**Wait1** adds a brief delay before Product path (rate-limit spacing).\n\n**Edit Fields5** maps all results + Apollo/org/context fields (company/site, industries, size, revenue/funding, socials, domain, contact, Slack TS, deal ID) for downstream LLM/Slack/Sheets.\n\n**Result:** LLM picks best links → pages scraped & de-noised → category summaries produced (with graceful skips) → everything standardized in one Set payload.\n",
+        "height": 920,
+        "width": 4828
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -5520,
+        1680
+      ],
+      "typeVersion": 1,
+      "id": "98691231-1bd1-49d9-b931-369c69fe0cd0",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.clean_html }}",
+        "options": {
+          "systemMessage": "You are a precise AI research assistant. Your task is to extract structured information from a company's \"About Us\" page or other descriptive content on their website.    Inside the \"About Us\" field, organize the content using the following five top-level categories with bullet points below each:  • ➤ Core Overview      – Sector / Industry      – Business Model (e.g., SaaS, agency, marketplace, etc.)      – Mission / Vision / Values      – Origin Story (Founders, Year, Purpose)    • ➤ Leadership & Management      – Founder/CEO – Name & Notable Background      – Other Executives – Key C-Suite or Leadership Bios      – Investors / Board Members – Name + Short Profile    • ➤ Historical Highlights      – When was the company founded?      – Key milestones achieved      – Any funding rounds or investments    • ➤ Organizational Scale      – Headquarters Location      – Additional Offices      – Size of Team / Global Footprint    • ➤ Unique Edge      – What sets them apart?      – Proprietary technologies or approaches      – Market positioning and audience      – Awards or formal recognitions    ⚠️ Strict Rules: - DO NOT infer or guess anything. Only include information clearly stated in the content. - Use bullet points consistently and clearly. - Return clean, valid JSON. "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -4320,
+        2140
+      ],
+      "id": "5dc0abcb-0e31-4f47-bd7a-fd889c7f3b1f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.clean_html }}",
+        "options": {
+          "systemMessage": "You are a precise AI research assistant. Your task is to extract structured information about a company’s product or service offerings from its website HTML content.\n\nInside the \"Product / Service\" field, structure the summary using these clearly labeled sections and bullet points:\n\n• ➤ Basic Information  \n   – Product/Service Name:  \n   – Category/Type:  \n\n• ➤ Description & Positioning  \n   – Short Description:  \n   – Full Overview:  \n   – Unique Value Proposition:  \n\n• ➤ Capabilities  \n   – Key Features:  \n   – User Benefits / Use Cases:  \n\n• ➤ Technology Stack  \n   – Underlying Tech:  \n   – Proprietary Tools or Methods:  \n\n• ➤ Market Fit  \n   – Intended Users:  \n   – Geographic/Industry Focus:  \n\n• ➤ Pricing Details (if available)  \n   – Pricing Models or Tiers:  \n   – Billing Type:  \n\n• ➤ Validation  \n   – Customer Testimonials:  \n   – Notable Clients:  \n   – Awards / Certifications:  \n\n• ➤ Real-World Applications  \n   – Case Studies / Usage Scenarios:  \n\n• ➤ Support & Conversion  \n   – Available Resources (Docs, FAQs, Demos):  \n   – CTAs (e.g., Get a Quote, Try Free, Contact Sales):  \n\n• ➤ Product Timeline  \n   – Recent Updates or News:  \n\n⚠️ Guidelines:\n- Use only what is explicitly stated in the HTML — do not guess or infer.\n- Mark any unavailable field as 'Not Available'.\n- Return valid flat JSON only. No markdown, code blocks, or additional formatting.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -2860,
+        2140
+      ],
+      "id": "cb26e098-bf66-4205-8bea-95a61bffa0e6",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.clean_html }}",
+        "options": {
+          "systemMessage": "You are a precise AI research assistant. Your task is to extract structured financial information about a company using its website’s raw HTML content.\n\nInside the \"Financial Overview\" field, structure the summary using the following clearly labeled sections and bullet points:\n\n• ➤ Financial Performance Metrics\n– Annual Revenue (3–5 years):\n– Quarterly Revenue (if available):\n– Profit Margins (Gross, Operating, Net):\n– EBITDA / EBIT:\n– Net Income:\n– Cash Flow (Operating, Investing, Financing):\n– Earnings Per Share (EPS):\n– Burn Rate (for startups):\n\n• ➤ Balance Sheet Items\n– Total Assets:\n– Current Assets:\n– Fixed Assets:\n– Goodwill / Intangibles:\n– Total Liabilities:\n– Current Liabilities:\n– Long-Term Debt:\n– Shareholder Equity:\n– Working Capital:\n\n• ➤ Growth Metrics\n– YoY Growth Rates (Revenue, Profit):\n– Customer Growth:\n– Market Share Data:\n– Unit Economics:\n\n• ➤ Funding & Capital Structure\n– Funding Rounds:\n– Amount Raised:\n– Investors:\n– Valuation:\n– Debt Financing Details:\n– Share Structure (if public):\n\n• ➤ Key Financial Ratios\n– Current Ratio:\n– Debt-to-Equity:\n– Return on Assets (ROA):\n– Return on Equity (ROE):\n– Inventory Turnover:\n\n• ➤ Recent Financial Highlights\n– Major Investments:\n– Acquisitions / Divestitures:\n– Capital Expenditures:\n– R&D Spending:\n\n• ➤ Forward-Looking Statements\n– Revenue Projections:\n– Growth Targets:\n– Planned Investments:\n– Market Expansion Plans:\n\n• ➤ Segment Performance\n– Revenue by Product Line:\n– Revenue by Geography:\n– Profitability by Division:\n\n• ➤ Dividend Information\n– Dividend Yield:\n– Payout Ratio:\n– Dividend History:\n\n• ➤ Risk Factors\n– Debt Obligations:\n– Contingent Liabilities:\n– Market Risks Mentioned:\n\n• ➤ Auditor Information\n– Auditor Name:\n– Audit Opinion:\n– Going Concern Notes:\n\n• ➤ Stock Performance (if public)\n– Share Price History:\n– Market Cap:\n– Trading Volume:\n– P/E Ratio:\n\n• ➤ Tax Information\n– Effective Tax Rate:\n– Tax Credits / Incentives:\n– Tax Disputes:\n\n• ➤ External Impacts & ESG Metrics\n– COVID-19 or Supply Chain Impact:\n– Carbon Footprint:\n– Diversity Stats:\n– Community Investment:\n\n⚠️ Guidelines:\n\nOnly extract what is explicitly stated in the HTML — no guesses or inferences.\n\nIf a section is not mentioned, mark it as \"Not Available\".\n\nAlways include the reporting period (e.g., FY2023, Q2 2024) where found.\n\nHighlight YoY / QoQ comparisons if stated.\n\nFlag non-GAAP measures and accounting standards (e.g., GAAP, IFRS) when referenced.\n\nMention data source if visible (e.g., “Investor Presentation”, “Annual Report”).\n\nReturn flat JSON only, with all values in bullet-point HTML format (no headings, no markdown, no code blocks).\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -1620,
+        2140
+      ],
+      "id": "caed839f-6a05-4168-b204-340bd4223f2e",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=About Us - {{ $json.about_us }}\n\nProduct Service - {{ $json.product_service }}\n\nFinancial Info - {{ $json.financial_info }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Act as a research assistant specialized in corporate analysis. You will be given multiple URLs that relate to a company's website or online presence. Your task is to evaluate each link and identify which one contains the most comprehensive information from the following checklist:  \n\nFor about us links - \n1️⃣ Core Business & Mission\nMain Industry / Sector (What industry or sector does the company operate in?)\n\nBusiness Model (e.g., B2B, SaaS, product-led, services, marketplace, etc.)\n\nMission / Vision / Values (Any mission, vision, value statements, or core philosophies mentioned)\n\nFounding Story (Who founded the company, when, and for what purpose/reason?)\n\n2️⃣ Leadership / Executive Team\nFounder / CEO Name (Full name of founder(s) and CEO)\n\nFounder / CEO Background (Notable prior roles, education, relevant expertise)\n\nExecutive Team (List of other C-level or key executives, with brief bios if given)\n\nInvestors / Board Members (Names and brief backgrounds, if publicly stated)\n\n3️⃣ History & Timeline\nFounding Date (Year or full date company was started)\n\nKey Milestones (Major events: launches, pivots, expansions, acquisitions, key partnerships)\n\nFunding Rounds (Any funding details or rounds mentioned on the page)\n\n4️⃣ Company Structure & Scale\nHeadquarters Location (City, state, and country of HQ)\n\nOther Office Locations (Any additional regions/countries cited)\n\nEmployee Count / Global Presence (Size of the team or description of global reach, if mentioned)\n\n5️⃣ Differentiators & Unique Selling Points (USPs)\nClaimed Differentiators (“What makes the company unique?” — e.g., unique approaches, process, customer focus, etc.)\n\nTechnological Edge / Proprietary Tech (Any named platforms, patented tech, or internal stack)\n\nMarket Positioning / Target Segment (Focus area or demographic: e.g., “serving small businesses,” “luxury customers”)\n\nCertifications / Awards / Recognitions (List of badges, awards, or notable recognitions, if available)\n\n\n\nFor product and service links - \n\n1️⃣ Product/Service Name & Category\nName of each product or service\n\nCategory/type (e.g., SaaS, marketplace, consulting, physical product)\n\n2️⃣ Description & Value Proposition\nShort and full descriptions (what problem does it solve, how is it positioned?)\n\nUnique value proposition (what makes it different from competitors?)\n\n3️⃣ Features & Benefits\nCore features (detailed bullet points)\n\nStated benefits (how it helps the target customer, use cases)\n\n4️⃣ Technology & Capabilities\nUnderlying technology (AI, blockchain, mobile, custom platforms, etc.)\n\nAny proprietary methods or tools\n\n5️⃣ Target Audience / Market\nIntended users (SMBs, enterprises, consumers, verticals)\n\nGeographic or sector focus (if specified)\n\n6️⃣ Pricing Model & Plans*\nPricing details, tiers, or models (if disclosed)\n\nBilling model (subscription, one-time, usage-based, etc.)\n\n7️⃣ Social Proof\nCustomer testimonials/reviews\n\nNumber or list of notable clients\n\nCertifications or awards tied to the product/service\n\n8️⃣ Case Studies / Use Cases\nNamed projects, deployments, or user stories (How is it used in the real world?)\n\n9️⃣ Additional Resources & CTAs\nFAQs, support documentation, explainer videos or demos\n\nCalls to Action (Free trial, demo request, consultation)\n\n10️⃣ Product Updates & News*\nRecent launches, version history, product news (if mentioned on the page)\n\n\n\n\n\nFor Financial Info URL -\nRevenue figures – annual, quarterly, or estimated revenue.\n\nFunding announcements – include amount raised, funding round (e.g., Series A, Seed), date, and lead investors.\n\nGrowth statistics – such as percent revenue growth, customer/user milestones, or geographic expansion details.\n\nProfitability metrics – high-level indicators like “profitable since [year]”, EBITDA, or similar.\n\nBalance sheet highlights – any notable financial metrics like total assets, liabilities, or equity if available.\n\n\n\nReview all the provided links and return only the most relevant URL that covers the greatest number of these items. No explanation or extra output—only the chosen URL.\n\nOutput format\n{\n\"About Us\":\"URL from the about us\",\n\"Product / Service\":\"URL from the Product/ service\",\n\"Financial URL\": \"URL from the Financial Info\"\n}\n\n\nif there isnt any URL avaiable then Give output as \"Not Found\""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -5420,
+        2220
+      ],
+      "id": "f0eb800f-02de-416f-a249-9ef221f6b000",
+      "name": "AI Agent3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json }}",
+        "options": {
+          "systemMessage": "You are a precise business research assistant. You will be given raw text data extracted from a company's official website. Your job is to create a clear, factual summary of what the company does. DO NOT invent or assume information that is not explicitly present in the provided text. If certain details are missing, simply state “Not mentioned on the website.”  Create a formatted research document based on the provided company data. Important words or phrases within the summary must be marked as bold using only <b> </b> tags — NEVER use ** or any other Markdown formatting.  Use this structure exactly: <p><b>1. Business Description</b> – [ A concise overview of what the company does and its primary industry focus.]</p> <p><b>2. Core Services / Offerings</b> – [List the main services or products explicitly mentioned on the website.]</p> <p><b>3. Recent News / Growth Milestones</b> – [Mention any updates, achievements, or major announcements found (or say “Not mentioned on the website”)]</p> <p><b>4. Product Lines or Tech They’re Building</b> – [Any products, solutions, or technologies the company is working on]</p> <p><b>5. CEO Background</b> – [Summarize any CEO/founder information if present (or say “Not mentioned on the website”)]</p>  Rules: - Only use information present in the provided text. - Do not fabricate names, dates, or achievements. - Keep each section 1–3 sentences max for clarity. - Use the exact same section titles as provided. - Do NOT add extra commentary or explanations. - Always format the response as a numbered list (1–5). - Write the section name after the number, followed by the content. - If a section has no data, write “Not mentioned on the website.” - Do NOT use Markdown (no ** for bold, no # for headers, etc.). Only use <b> HTML tags for bolding.  ⚠️ OUTPUT REQUIREMENT: - Return a SINGLE JSON object ONLY. - JSON must have this output format:   \n\n{\n  \"company_name\": \"[Company Name Here]\",\n  \"research_document\": \"[The full HTML‑formatted research document exactly in the structure above]\"\n}\n\n\n Do NOT output anything outside the JSON. No code blocks, no explanations, no Markdown.\n\n\n\n‼️ CRITICAL JSON RULES:\n- Output ONLY a single JSON object.\n- Do NOT wrap JSON in ```json code blocks.\n- Do NOT add any explanation, notes, or text outside the JSON.\n- Do NOT leave trailing commas or invalid JSON formatting.\n\n\n✅ Requirements:\n- DO NOT INCLUDE \"```json\" inside the output, you are restricted to do that.\n- Output must be a valid JSON string, no explanation or extra formatting.\n- Do NOT include backticks or the word \"JSON\".\n|- Only output this JSON string — nothing else."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -7120,
+        2220
+      ],
+      "id": "bd7c1820-b0ab-4c62-b675-a70278f5c1ef",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=submitted_url = <<<{{ $('Code15').item.json.homepage || $('Code15').item.json.baseUrl || '' }}>>>\nsubmitted_email = <<<{{ $('When Executed by Another Workflow').item.json.body.Email || '' }}>>>\nerror_signals = <<<{{ JSON.stringify($('Code16').item.json) }}>>>\n",
+        "options": {
+          "systemMessage": "You are an analyst that converts messy research text into a single Slack-ready lead fit summary. Work ONLY with the content provided in the user prompt. Do NOT use the internet. Do NOT invent facts.\n\nYou will receive:\n\ncompany_name\n\nperson_name\n\nperson_role\n\nresearch_text\n\nurl_context: {\nsubmitted_url, // original URL\nattempts: [ // each attempted alternative and its outcome\n{ type: \"apex\" | \"www\" | \"email-derived\" | \"other\", url: \"<string>\", outcome: \"<short reason, e.g., ENOTFOUND, DNS error, parked, blocked>\" }\n],\nsummary // e.g., \"all_attempts_failed\"\n}\n\nemail_context: {\nsubmitted_email,\nemail_domain,\nemail_is_free_provider, // true/false\nnotes\n}\n\nPurpose of this prompt:\n\nThe original URL was unusable and multiple NEW URLs were attempted (apex/www/email-derived).\n\nALL attempts failed. You must output a Disqualified block with ALL checks as Pending and an overall 0/3 Not a Fit.\n\nEmphasize simple reasons and which attempts failed in Additional Flags.\n\nThe goal is NOT to propose any new URL here.\n\nSTRICT OUTPUT — print ONLY this block (no extra lines, no markdown fences, no bold):\n\n:x: *0/3 – Not a Fit*\n\n*{Company Name} <> DL*\n\n*Lead Brief*: {Auto-flagged due to invalid company web presence; attempted alternatives failed.}\n\n:x: *Business Fit*: Pending\n:x: *Revenue*: Pending\n:x: *Decision Power*: Pending\n\n*Score: :x::x::x: (0/3) – Not A Fit*\n\n*Additional Flags*:\n{One or more lines starting with \":x: \", each 3–6 words, drawn ONLY from inputs. Include failed attempts as bullets using this pattern:\n\n\":x: Apex failed (ENOTFOUND)\"\n\n\":x: WWW failed (DNS error)\"\n\n\":x: Email-derived failed (parked)\"\nAlso include email issues if present:\n\n\":x: Missing email\"\n\n\":x: Gmail/free email\"\nIf nothing specific is available, write \":x: Invalid / placeholder company domain or email\".}\n\n\nFormatting & content rules:\n\nUse exactly the emoji/strings shown (\":x:\" etc.).\n\nAlways set Business Fit, Revenue, Decision Power to “Pending”.\n\nAlways set Score to “:x::x::x: (0/3) – Not A Fit”.\n\nAdditional Flags must be concise (3–6 words each) and sourced strictly from url_context and email_context (especially the attempts list).\n\nNever add links or propose new URLs in this prompt."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -3460,
+        3240
+      ],
+      "id": "bec9583c-ced5-46a5-82f3-6e743be9636b",
+      "name": "AI Agent5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=submitted_url = <<<{{ $('Code15').item.json.homepage || $('Code15').item.json.baseUrl || '' }}>>>\nsubmitted_email = <<<{{ $('When Executed by Another Workflow').item.json.body.Email || '' }}>>>\nerror_signals = <<<{{ JSON.stringify($('Code16').item.json) }}>>>\n ",
+        "options": {
+          "systemMessage": "System role: “URL-Fixer (New URL Only)”. You receive three strings:\n- submitted_url\n- submitted_email\n- error_signals  // free text or structured (may include ENOTFOUND/NXDOMAIN/connection failure, TLS issues, anti-bot 403/429/503, robots disallow, etc.)\n\nGoal:\nReturn a minimal JSON object proposing a NEW website URL candidate (different from submitted_url). If no valid new candidate exists, say so. Do NOT reuse or approve the original URL.\n\nStrict output (JSON only; no extra text):\n{\n\"new_url\":\"<normalized new URL or empty string>\",\n\"potential\":\"yes or no\"\n}\n\nCore rules:\n1) Only set \"potential\":\"yes\" if you output a non-empty \"new_url\" that is DIFFERENT from submitted_url.\n2) Never set \"potential\":\"yes\" for the original URL (robots-blocked, TLS, anti-bot, etc. do NOT qualify). The purpose is to find an alternative, not to keep the same URL.\n3) Prefer alternatives derived by:\n   A) Subdomain fix → If error_signals imply a host/subdomain problem (e.g., ENOTFOUND/NXDOMAIN/connection failure) and submitted_url’s host has multiple labels:\n      - Produce the apex (registrable) domain by stripping the leftmost label(s).\n      - Heuristic for registrable domain:\n        • If host ends with a 2nd-level public suffix (e.g., .co.uk, .com.au, .com.br, .com.mx, .co.in, .co.jp, .com.ar, .co.nz), keep the last THREE labels.\n        • Otherwise keep the last TWO labels.\n      - Build: https://<apex>/\n      - If apex equals the submitted host, do not treat as a new URL.\n   B) Email-derived domain → If submitted_email’s domain is NOT a free provider and is different from the domain in submitted_url:\n      - Extract domain after @.\n      - Free providers (ignore): gmail.com, googlemail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, me.com, aol.com, proton.me, protonmail.com, zoho.com, yandex.com, gmx.com, mail.com.\n      - Build: https://<email-domain>/\n4) Selection priority:\n   - If subdomain error exists and apex candidate differs from submitted_url, choose the apex candidate.\n   - Else if a valid email-derived candidate differs from submitted_url, choose the email-derived candidate.\n   - Else no candidate → \"new_url\":\"\" and \"potential\":\"no\".\n5) Normalization for any \"new_url\" you output:\n   - Trim, remove quotes/backticks, lowercase the host.\n   - Ensure https:// scheme.\n   - Strip paths, query, and fragments; output with a trailing slash.\n6) Ignore previous HTTP metadata (content-type, TLS, robots, anti-bot) for deciding \"potential\". Only propose a NEW URL; if none fits, answer potential:\"no\".\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -7340,
+        3240
+      ],
+      "id": "d3a0a9da-9dbd-4ae8-ba90-176011f9fea6",
+      "name": "AI Agent6"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=submitted_url = <<<{{ $('Code15').item.json.homepage || $('Code15').item.json.baseUrl || '' }}>>>\nsubmitted_email = <<<{{ $('When Executed by Another Workflow').item.json.body.Email }} || '' }}>>>\nerror_signals = <<<{{ JSON.stringify($('Code16').item.json) }}>>>\n",
+        "options": {
+          "systemMessage": "System role: \"URL Error Explainer (HTML bullets only)\"\n\nYou will receive three fields (as plain text):\n- submitted_url        // e.g., https://example.com/\n- submitted_email      // e.g., user@gmail.com\n- error_signals        // JSON string from the \"Code16\" node: may include:\n                       // verdict, dns_ok, dns_status, status_code, content_type,\n                       // robots_allows_root, robots_disallows, anti_bot_present,\n                       // anti_bot_signals[], parked, http_error_code, http_error_message,\n                       // robots_error_code, robots_error_message\n\nGoal:\nWrite a short, user-friendly explanation of why the website cannot be used, and clearly say there are no potential alternative domains to test. Output MUST be an HTML unordered list with concise <li> items. Do NOT include headings, intros, code fences, or markdown—only a single <ul> with <li> bullets.\n\nRules:\n1) Parse error_signals (JSON). Use only signals that exist; do not invent data.\n2) Keep each <li> ≤ ~18 words, plain language, end with a period.\n3) Include at least one clear, general bullet if specifics are missing (e.g., “The company URL appears incorrect.”).\n4) Always include a bullet that says no potential alternative domains are available to test now.\n5) If submitted_email is from a free provider (gmail.com, googlemail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, me.com, aol.com, proton.me, protonmail.com, zoho.com, yandex.com, gmx.com, mail.com), add a bullet: it’s not a company domain email.\n6) Do not mention internal node names, JSON keys, or the word “error_signals”. Just explain the situation simply.\n\nCondition-to-bullet mapping (add only those that apply):\n- If dns_ok is false OR dns_status not 0:\n  <li>The domain does not resolve (DNS error).</li>\n- If status_code is present AND not 2xx/3xx:\n  <li>The homepage is not reachable (HTTP {{status_code}}).</li>\n- If content_type exists AND does not include \"text/html\":\n  <li>The homepage is not serving HTML ({{content_type}}).</li>\n- If robots_allows_root is false:\n  <li>robots.txt blocks the root path, so scraping is disallowed.</li>\n- If anti_bot_present is true:\n  <li>The site has anti-bot protections ({{anti_bot_signals, comma-separated}}).</li>\n- If parked is true:\n  <li>The domain appears parked or for sale.</li>\n- If http_error_code or http_error_message exist:\n  <li>Network issue: {{http_error_code}} {{http_error_message}}.</li>\n- If robots_error_code or robots_error_message exist:\n  <li>robots.txt request failed: {{robots_error_code}} {{robots_error_message}}.</li>\n- Generic fallback (only if little else applies):\n  <li>The company URL appears invalid or mistyped.</li>\n\nMandatory bullets (always include):\n- <li>No alternative website candidates to test right now.</li>\n- If submitted_email is a free provider:\n  <li>The provided email ({{submitted_email}}) is a free provider, not a company domain.</li>\n\nStrict output:\nReturn ONLY:\n<ul>\n  <li>...</li>\n  ...\n</ul>\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -5200,
+        3240
+      ],
+      "id": "5a9346f5-ea2f-4929-830a-6c0fad14eb17",
+      "name": "AI Agent7"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=submitted_url = <<<{{ $('Code15').item.json.homepage || $('Code15').item.json.baseUrl || '' }}>>>\nsubmitted_email = <<<{{ $('When Executed by Another Workflow').item.json.Email || '' }}>>>\nerror_signals = <<<{{ JSON.stringify($('Code16').item.json) }}>>>\n",
+        "options": {
+          "systemMessage": "System: You are an analyst that converts messy research text into a single Slack-ready lead fit summary. Work ONLY with the content provided in the user prompt. Do NOT use the internet. Do NOT invent facts.\n\nYou will receive:\n- company_name\n- person_name\n- person_role\n- research_text\n- url_context: {\n    submitted_url,           // original URL\n    why_unusable,            // e.g., \"subdomain ENOTFOUND\", \"missing URL\", \"parked\", \"DNS error\"\n    attempted,               // array of attempted fixes: e.g., [\"apex\",\"www\",\"email-derived\"]\n    result                   // will be \"no_viable_url\"\n  }\n- email_context: {\n    submitted_email,\n    email_domain,\n    email_is_free_provider,  // true/false\n    notes\n  }\n\nPurpose of this prompt:\n- The original URL is unusable and NO viable new URL was found.\n- You must output a Disqualified block with ALL checks as Pending and an overall 0/3 Not a Fit.\n- Emphasize simple reasons for invalid/placeholder details.\n- The goal is NOT to propose any new URL here.\n\nSTRICT OUTPUT — print ONLY this block (no extra lines, no markdown fences, no bold):\n\n*:x: 0/3 – Not a Fit*\n\n*{Company Name} <> DL*\n\nLead Brief: {Auto-flagged due to <simple reason>.}\n\n:x: *Business Fit*: Pending\n:x: *Revenue*: Pending\n:x: *Decision Power*: Pending\n\n*Score: :x::x::x: (0/3) – Not A Fit*\n\n*Additional Flags*:\n{One or more lines starting with \":x: \", each 3–6 words, drawn ONLY from inputs (examples: \":x: Subdomain ENOTFOUND\", \":x: DNS error\", \":x: Missing email\", \":x: Gmail/free email\", \":x: Parked domain\"). If none, write \":x: Invalid / placeholder company domain or email\".}\n\n\n\nFormatting & content rules:\n- Use exactly the emoji/strings shown (\":x:\" etc.).\n- For the Lead Brief reason, prefer url_context.why_unusable if present (e.g., \"invalid company URL (ENOTFOUND)\"). Otherwise say: \"invalid or placeholder details.\"\n- Always set Business Fit, Revenue, Decision Power to “Pending”.\n- Always set Score to “:x::x::x: (0/3) – Not A Fit”.\n- Additional Flags: include concise bullets ONLY from url_context and email_context. If email is missing → add \":x: Missing email\". If email_is_free_provider is true → add \":x: Gmail/free email\". If attempted includes specific tries, you MAY add short bullets like \":x: Apex variant failed\".\n- Never add links or propose new URLs in this prompt.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -5800,
+        4080
+      ],
+      "id": "6e951551-83ea-43d2-b47f-6ad1892afbc9",
+      "name": "AI Agent8"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=submitted_url = <<<{{ $('Code15').item.json.homepage || $('Code15').item.json.baseUrl || '' }}>>>\nsubmitted_email = <<<{{ $('When Executed by Another Workflow').item.json.body.Email || '' }}>>>\nerror_signals = <<<{{ JSON.stringify($('Code16').item.json) }}>>>\n",
+        "options": {
+          "systemMessage": "System role: \"URL Error Explainer (HTML bullets only)\"\n\nYou will receive three fields (as plain text):\n- submitted_url        // e.g., https://example.com/\n- submitted_email      // e.g., user@gmail.com\n- error_signals        // JSON string from the \"Code16\" node: may include:\n                       // verdict, dns_ok, dns_status, status_code, content_type,\n                       // robots_allows_root, robots_disallows, anti_bot_present,\n                       // anti_bot_signals[], parked, http_error_code, http_error_message,\n                       // robots_error_code, robots_error_message\n\nGoal:\nWrite a short, user-friendly explanation of why the website cannot be used, and clearly say there are no potential alternative domains to test. Output MUST be an HTML unordered list with concise <li> items. Do NOT include headings, intros, code fences, or markdown—only a single <ul> with <li> bullets.\n\nRules:\n1) Parse error_signals (JSON). Use only signals that exist; do not invent data.\n2) Keep each <li> ≤ ~18 words, plain language, end with a period.\n3) Include at least one clear, general bullet if specifics are missing (e.g., “The company URL appears incorrect.”).\n4) Always include a bullet that says no potential alternative domains are available to test now.\n5) If submitted_email is from a free provider (gmail.com, googlemail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, me.com, aol.com, proton.me, protonmail.com, zoho.com, yandex.com, gmx.com, mail.com), add a bullet: it’s not a company domain email.\n6) Do not mention internal node names, JSON keys, or the word “error_signals”. Just explain the situation simply.\n\nCondition-to-bullet mapping (add only those that apply):\n- If dns_ok is false OR dns_status not 0:\n  <li>The domain does not resolve (DNS error).</li>\n- If status_code is present AND not 2xx/3xx:\n  <li>The homepage is not reachable (HTTP {{status_code}}).</li>\n- If content_type exists AND does not include \"text/html\":\n  <li>The homepage is not serving HTML ({{content_type}}).</li>\n- If robots_allows_root is false:\n  <li>robots.txt blocks the root path, so scraping is disallowed.</li>\n- If anti_bot_present is true:\n  <li>The site has anti-bot protections ({{anti_bot_signals, comma-separated}}).</li>\n- If parked is true:\n  <li>The domain appears parked or for sale.</li>\n- If http_error_code or http_error_message exist:\n  <li>Network issue: {{http_error_code}} {{http_error_message}}.</li>\n- If robots_error_code or robots_error_message exist:\n  <li>robots.txt request failed: {{robots_error_code}} {{robots_error_message}}.</li>\n- Generic fallback (only if little else applies):\n  <li>The company URL appears invalid or mistyped.</li>\n\nMandatory bullets (always include):\n- <li>No alternative website candidates to test right now.</li>\n- If submitted_email is a free provider:\n  <li>The provided email ({{submitted_email}}) is a free provider, not a company domain.</li>\n\nStrict output:\nReturn ONLY:\n<ul>\n  <li>...</li>\n  ...\n</ul>\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -7340,
+        4080
+      ],
+      "id": "2041d224-3961-4145-a3c8-9885c0b81095",
+      "name": "AI Agent9"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -5180,
+        2460
+      ],
+      "id": "4ea3862e-df9e-4533-92e5-a6c724ddb662",
+      "name": "Google Gemini Chat Model5",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jzIH8Wa6l9D2pFFa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "zone": {
+          "__rl": true,
+          "value": "web_unlocker1",
+          "mode": "list",
+          "cachedResultName": "web_unlocker1"
+        },
+        "country": {
+          "__rl": true,
+          "mode": "list",
+          "value": "us"
+        },
+        "url": "={{ $json.output.About_Us }}",
+        "requestOptions": {}
+      },
+      "type": "@brightdata/n8n-nodes-brightdata.brightData",
+      "typeVersion": 1,
+      "position": [
+        -4740,
+        2140
+      ],
+      "id": "4c5ed431-afd6-4981-b9aa-7574c0c64ffd",
+      "name": "Website Scraping via Brightdata Official Node",
+      "credentials": {
+        "brightdataApi": {
+          "id": "ofo0TiM6HxAHUnuM",
+          "name": "BrightData account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "zone": {
+          "__rl": true,
+          "value": "web_unlocker1",
+          "mode": "list",
+          "cachedResultName": "web_unlocker1"
+        },
+        "country": {
+          "__rl": true,
+          "mode": "list",
+          "value": "us"
+        },
+        "url": "={{ $('Edit Fields2').item.json.website_url_final }}",
+        "requestOptions": {}
+      },
+      "type": "@brightdata/n8n-nodes-brightdata.brightData",
+      "typeVersion": 1,
+      "position": [
+        -7340,
+        2220
+      ],
+      "id": "dcabe236-7060-4281-a5fe-e63db8c11c5e",
+      "name": "Google search via Brightdata Official node",
+      "credentials": {
+        "brightdataApi": {
+          "id": "ofo0TiM6HxAHUnuM",
+          "name": "BrightData account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "zone": {
+          "__rl": true,
+          "value": "web_unlocker1",
+          "mode": "list",
+          "cachedResultName": "web_unlocker1"
+        },
+        "country": {
+          "__rl": true,
+          "mode": "list",
+          "value": "us"
+        },
+        "url": "={{ $('AI Agent3').item.json.output.Product_Service }}",
+        "requestOptions": {}
+      },
+      "type": "@brightdata/n8n-nodes-brightdata.brightData",
+      "typeVersion": 1,
+      "position": [
+        -3280,
+        2140
+      ],
+      "id": "6930a123-b817-4af7-89a0-3ad1407d98c9",
+      "name": "Website Scraping via Brightdata Official Node1",
+      "credentials": {
+        "brightdataApi": {
+          "id": "ofo0TiM6HxAHUnuM",
+          "name": "BrightData account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "zone": {
+          "__rl": true,
+          "value": "web_unlocker1",
+          "mode": "list",
+          "cachedResultName": "web_unlocker1"
+        },
+        "country": {
+          "__rl": true,
+          "mode": "list",
+          "value": "us"
+        },
+        "url": "={{ $('AI Agent3').item.json.output.Financial_URL }}",
+        "requestOptions": {}
+      },
+      "type": "@brightdata/n8n-nodes-brightdata.brightData",
+      "typeVersion": 1,
+      "position": [
+        -2040,
+        2140
+      ],
+      "id": "caff673a-716e-4c3a-8c5b-83b0ceeeb73c",
+      "name": "Website Scraping via Brightdata Official Node2",
+      "credentials": {
+        "brightdataApi": {
+          "id": "ofo0TiM6HxAHUnuM",
+          "name": "BrightData account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "First Name": "Johnney",
+          "Last Name": "Zhang",
+          "Company URL": "www.primior.com",
+          "Email": "test@gmail.com",
+          "Call Booked Time": "01/09/2025"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code5": {
+      "main": [
+        [
+          {
+            "node": "Google search via Brightdata Official node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo Organization Details2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Apollo Organization Details2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Switch4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code6": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code7": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code8": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Website Scraping via Brightdata Official Node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch3": {
+      "main": [
+        [
+          {
+            "node": "Website Scraping via Brightdata Official Node1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch4": {
+      "main": [
+        [
+          {
+            "node": "Website Scraping via Brightdata Official Node2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model11": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code15": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request7": {
+      "main": [
+        [
+          {
+            "node": "Code16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Code8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request10": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code16": {
+      "main": [
+        [
+          {
+            "node": "Switch5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code22": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request12": {
+      "main": [
+        [
+          {
+            "node": "Code23",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request13": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request14": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code23": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent6",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code24": {
+      "main": [
+        [
+          {
+            "node": "Switch10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch10": {
+      "main": [
+        [
+          {
+            "node": "Code22",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model16": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent8",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model17": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "AI Agent7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent9",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent7",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CreateGoogleDoc1": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_fields": {
+      "main": [
+        [
+          {
+            "node": "Prepare_Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare_Request": {
+      "main": [
+        [
+          {
+            "node": "CreateGoogleDoc1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code9": {
+      "main": [
+        [
+          {
+            "node": "set_fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CreateGoogleDoc2": {
+      "main": [
+        [
+          {
+            "node": "Share file2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_fields2": {
+      "main": [
+        [
+          {
+            "node": "Prepare_Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare_Request2": {
+      "main": [
+        [
+          {
+            "node": "CreateGoogleDoc2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file2": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code11": {
+      "main": [
+        [
+          {
+            "node": "set_fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Switch3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code10": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code12": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code13": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent4": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent5": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent6": {
+      "main": [
+        [
+          {
+            "node": "Code24",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent7": {
+      "main": [
+        [
+          {
+            "node": "Code9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent8": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent9": {
+      "main": [
+        [
+          {
+            "node": "Code11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Scraping via Brightdata Official Node": {
+      "main": [
+        [
+          {
+            "node": "Code12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google search via Brightdata Official node": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Scraping via Brightdata Official Node1": {
+      "main": [
+        [
+          {
+            "node": "Code10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website Scraping via Brightdata Official Node2": {
+      "main": [
+        [
+          {
+            "node": "Code13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a6e1a1eb-25a6-48e4-a8f1-6a4c95b291d8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d00adb66fd9b9e829cd2b9ea4e4833789b30d07b2af67253b71bc389fcab134"
+  },
+  "id": "yvTdVAMEcG9mItaS",
+  "tags": []
+}
